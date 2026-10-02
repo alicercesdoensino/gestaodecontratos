@@ -59,6 +59,27 @@ body.busy{cursor:progress}
 .imp-table td{font-size:12px;vertical-align:top}
 details summary{cursor:pointer;margin-bottom:6px}
 .heading-actions{display:flex;gap:10px;flex-wrap:wrap}
+.toast.erro{background:#a53d35;color:#fff;max-width:min(560px,92vw)}
+/* Checklists */
+.ck{list-style:none;padding:0;margin:14px 0 6px}
+.ck-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.ck-item:last-child{border-bottom:0}
+.ck-box{flex:0 0 26px;width:26px;height:26px;border-radius:8px;border:2px solid #c9d3cc;background:#fff;display:grid;place-items:center;font-weight:800;color:#fff;font-size:14px;padding:0;cursor:pointer}
+span.ck-box{cursor:default}
+.ck-item.feito .ck-box{background:var(--teal);border-color:var(--teal)}
+.ck-item.na .ck-box{background:#b9c2bc;border-color:#b9c2bc}
+.ck-item.atual .ck-box{border-color:var(--orange);box-shadow:0 0 0 3px #f3893222}
+.ck-item.atrasado .ck-box{border-color:#a53d35}
+.ck-text{flex:1;min-width:0}
+.ck-text strong{font-size:13px}
+.ck-text small{display:block;color:var(--muted);margin-top:3px;font-size:11px;line-height:1.5}
+.ck-item.feito .ck-text strong{color:var(--teal-dark)}
+.ck-item.futuro{opacity:.45}
+.ck-canais{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.ck-canais .button{padding:7px 12px;font-size:12px}
+.ck-box:focus-visible{outline:2px solid var(--teal-dark);outline-offset:2px}
+.progress.ped span{background:var(--orange)}
+.sec-title{font-size:13px;color:var(--teal-dark);margin:22px 0 4px}
 </style>
   <script>
     /* ===== ENDEREÇO DA API (link /exec do Apps Script) ===== */
@@ -74,9 +95,9 @@ details summary{cursor:pointer;margin-bottom:6px}
     <div class="sidebar-bottom"><div class="demo-chip" id="env-chip"><span></span> Planilha</div><p>Da primeira conversa<br>à próxima conquista.</p><div class="profile" id="profile"></div><div class="sidebar-links"><button class="logout" data-action="change-pass">Alterar minha senha</button><button class="logout" data-action="logout">Sair</button></div></div>
   </aside>
   <div class="shell">
-    <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola…" aria-label="Buscar escola em todo o CRM"></label><button class="sync" data-action="refresh" id="sync-status" title="Atualizar dados da planilha" style="background:none">Dados da planilha</button><span class="date-label" id="date-label"></span><span class="avatar small" id="top-avatar"></span></div></header>
+    <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola…" aria-label="Buscar escola em todo o CRM"></label><button class="sync" data-action="refresh" id="sync-status" title="Atualizar dados da planilha" style="background:none">Tudo salvo</button><span class="date-label" id="date-label"></span><span class="avatar small" id="top-avatar"></span></div></header>
     <main id="main" tabindex="-1"></main>
-    <footer>ALICERCES · CRM EDITORIAL <span>Dados gravados na planilha Google</span></footer>
+    <footer>ALICERCES · CRM EDITORIAL <span>Versão da tela 1.3 · 02/10/2026 · Dados gravados na planilha Google</span></footer>
   </div>
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-title"><div id="form-content"></div></dialog>
@@ -179,23 +200,73 @@ async function api(acao, dados = {}) {
   }
   return json.resultado;
 }
+const IDS = { ESCOLAS: 'ID_ESCOLA', CONTATOS: 'ID_CONTATO', OPORTUNIDADES: 'ID_OPORTUNIDADE', ATIVIDADES: 'ID_ATIVIDADE', TAREFAS: 'ID_TAREFA', REUNIOES: 'ID_REUNIAO', CONTRATACOES: 'ID_CONTRATACAO', CONTRATOS: 'ID_CONTRATO', ANOS_LETIVOS: 'ID_ANO_LETIVO', RENOVACOES: 'ID_RENOVACAO', KITS_CONTRATADOS: 'ID_ITEM', PEDAGOGICO: 'ID_PEDAGOGICO', DEMANDAS: 'ID_DEMANDA', MENSAGENS: 'ID_MENSAGEM', DOCUMENTOS: 'ID_DOCUMENTO', USUARIOS: 'ID_USUARIO', HABILITACOES: 'ID_HABILITACAO', HISTORICO: 'ID_HISTORICO', CHECKLIST: 'ID_ITEM_CHECK', CHECKLIST_ETAPAS: 'ID_ETAPA' };
+/** Junta na memória da tela só os registros que o servidor devolveu. */
+function aplicarMudancas(m) {
+  if (!m || !D) return;
+  Object.entries(m).forEach(([nome, linhas]) => {
+    const chave = IDS[nome], tab = D.tabelas[nome] = D.tabelas[nome] || [];
+    linhas.forEach(l => { const i = tab.findIndex(x => x[chave] === l[chave]); if (i >= 0) tab[i] = l; else tab.push(l); });
+    if (nome === 'HISTORICO' && tab.length > 400) tab.splice(0, tab.length - 400);
+  });
+  if (m.USUARIOS) { const u = m.USUARIOS.find(x => x.ID_USUARIO === eu().id); if (u) Object.assign(D.usuario, { nome: u.NOME, perfil: u.PERFIL_PERMISSAO }); }
+}
+/** Redesenha sem tirar o foco de quem está digitando na busca. */
+function redesenhar() {
+  const ae = document.activeElement, id = ae && ae.id, pos = ae && ae.selectionStart;
+  render(); if (detail.open) renderDetail();
+  if (id && (id === 'page-search' || id === 'global-search')) { const el = $(id); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch {} } }
+}
 async function gravar(acao, dados, msg) {
   setOcupado(true);
   try {
     const r = await api(acao, dados);
-    D = r.dados; render(); if (detail.open) renderDetail();
+    aplicarMudancas(r.mudancas); redesenhar();
     if (msg) toast(msg);
     return r.resultado;
   } finally { setOcupado(false); }
 }
+
+/* ---------- Gravação em segundo plano (ações simples) ----------
+   A tela muda na hora; o pedido entra numa fila e é enviado em ordem.
+   Se a planilha recusar, a mudança é desfeita na tela e aparece um aviso. */
+const fila = []; let enviandoFila = false;
+function emSegundoPlano(descricao, aplicarLocal, acao, dados, msg) {
+  const r = aplicarLocal(), desfazer = typeof r === 'function' ? r : r.desfazer, limpar = typeof r === 'function' ? null : r.limpar;
+  redesenhar(); if (msg) toast(msg);
+  fila.push({ descricao, desfazer, limpar, acao, dados });
+  atualizarSync(); processarFila();
+}
+async function processarFila() {
+  if (enviandoFila) return; enviandoFila = true;
+  while (fila.length) {
+    const item = fila[0];
+    try { const r = await api(item.acao, item.dados); if (item.limpar) item.limpar(); aplicarMudancas(r.mudancas); }
+    catch (err) {
+      if (err.codigo === 'SESSAO') { fila.length = 0; break; }
+      try { item.desfazer(); } catch {}
+      toast(`Não foi salvo (${item.descricao}): ${err.message}`, true);
+    }
+    fila.shift(); atualizarSync(); redesenhar();
+  }
+  enviandoFila = false; atualizarSync();
+}
+function atualizarSync() {
+  const s = $('sync-status'); if (!s) return;
+  const n = fila.length + (ocupado ? 1 : 0);
+  document.body.classList.toggle('busy', n > 0);
+  s.textContent = n ? (fila.length ? `Salvando ${fila.length}…` : 'Sincronizando…') : 'Tudo salvo';
+}
+addEventListener('beforeunload', e => { if (fila.length) { e.preventDefault(); e.returnValue = ''; } });
 const salvar = (tabela, registro, msg = 'Salvo na planilha.') => gravar('salvar', { tabela, registro }, msg);
 async function recarregar(msg) {
+  if (fila.length) return; // espera a fila terminar para não sobrescrever a tela
   setOcupado(true);
-  try { D = await api('carregar'); render(); if (detail.open) renderDetail(); if (msg) toast(msg); }
+  try { D = await api('carregar'); redesenhar(); if (msg) toast(msg); }
   catch (e) { if (e.codigo !== 'SESSAO' && e.codigo !== 'TROCAR_SENHA') toast(e.message); }
   finally { setOcupado(false); }
 }
-function setOcupado(v) { ocupado = v; document.body.classList.toggle('busy', v); const s = $('sync-status'); if (s) s.textContent = v ? 'Sincronizando…' : 'Dados da planilha'; }
+function setOcupado(v) { ocupado = v; atualizarSync(); }
 
 /* ---------- Login / senha ---------- */
 function telaLogin(msg = '', emailDigitado = '') {
@@ -265,7 +336,7 @@ async function iniciar() {
 }
 
 /* ---------- Componentes ---------- */
-function toast(text) { const t = $('toast'); t.textContent = text; t.classList.add('visible'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('visible'), 4200); }
+function toast(text, erro = false) { const t = $('toast'); t.textContent = text; t.classList.toggle('erro', erro); t.classList.add('visible'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('visible'), erro ? 9000 : 3500); }
 const badge = (t, c = 'teal') => `<span class="pill ${c}">${esc(t)}</span>`;
 const heading = (k, t, s, a = '') => `<div class="page-heading"><div><div class="eyebrow">${k}</div><h1>${t}</h1><p class="subtitle">${s}</p></div><div class="heading-actions">${a}</div></div>`;
 const btn = (t, a, k = '', x = '') => `<button class="button ${k}" data-action="${a}" ${x}>${t}</button>`;
@@ -339,7 +410,16 @@ function dashboard() {
     + `<div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>Um olhar para o funil</h2>${btn('Ver prospecção ↗', 'nav-prospeccao', 'text')}</div><div class="funnel">${etapas.map(e => { const c = leads().filter(o => o.ETAPA === e).length; return `<div class="funnel-row"><span>${esc(e)}</span><div class="bar-track"><div class="bar-fill" style="width:${c / maxE * 100}%"></div></div><strong>${pad(c)}</strong></div>`; }).join('')}</div><div class="panel-foot"><span>${leads().length} oportunidades em movimento</span><span>${perdidas().length} não avançaram</span></div></section>`
     + `<section class="panel"><div class="panel-head"><h2>Na agenda de hoje</h2>${badge(new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' }), 'orange')}</div>${hojeR.length ? hojeR.map(reuniaoLinha).join('') : vazio('Hoje está livre para novas conversas.')}${btn('Abrir agenda completa →', 'nav-agenda', 'text')}</section>`
     + `<section class="panel"><div class="panel-head"><h2>Tentativas para hoje</h2>${badge(tentHoje.length + ' escolas', tentHoje.length ? 'orange' : 'teal')}</div>${tentHoje.length ? `<div class="table-wrap"><table><thead><tr><th>ESCOLA</th><th>ETAPA</th><th>TENTATIVAS</th><th>PREVISTA</th></tr></thead><tbody>${tentHoje.slice(0, 8).map(o => `<tr><td>${escolaCell(escola(o.ID_ESCOLA))}</td><td>${badge(o.ETAPA || '—')}</td><td>${Number(o.TENTATIVAS_PRE_REUNIAO || 0)}/${maxTent()}</td><td>${curta(o.PROXIMA_TENTATIVA)}</td></tr>`).join('')}</tbody></table></div>` : vazio('Nenhuma tentativa prevista para hoje.')}</section>`
+    + painelChecklists()
     + `<section class="panel"><div class="panel-head"><h2>Suas tarefas</h2>${btn('Ver todas ↗', 'nav-tarefas', 'text')}</div>${minhas.length ? minhas.sort((a, b) => String(a.PRAZO || '9').localeCompare(b.PRAZO || '9')).slice(0, 6).map(t => `<div class="agenda-item"><span class="event-line"></span><div><h3>${esc(t.TITULO)}</h3><p>${escolaBtn(escola(t.ID_ESCOLA))} · prazo ${data(t.PRAZO)}</p>${t.PRAZO && dia(t.PRAZO) < h ? badge('Atrasada', 'red') : ''}</div></div>`).join('') : vazio('Nenhuma tarefa aberta para você. 🎉')}</section></div>`;
+}
+
+function painelChecklists() {
+  const u = eu(), h = hoje(), grupos = {};
+  T('CHECKLIST').forEach(c => { const k = c.ID_CONTRATACAO + '|' + c.PROCESSO; (grupos[k] = grupos[k] || []).push(c); });
+  const meus = Object.values(grupos).map(g => g.sort((a, b) => Number(a.ORDEM) - Number(b.ORDEM)).find(c => !ckFeito(c))).filter(c => c && (c.RESPONSAVEL === u.id || (!c.RESPONSAVEL && u.gestor)))
+    .sort((a, b) => String(a.PRAZO || '9999').localeCompare(b.PRAZO || '9999'));
+  return `<section class="panel"><div class="panel-head"><h2>Próximos passos dos checklists</h2>${badge(meus.length + ' escolas', meus.length ? 'orange' : 'teal')}</div>${meus.length ? meus.slice(0, 8).map(c => `<div class="agenda-item"><span class="event-line"></span><div><h3>${escolaBtn(escola(c.ID_ESCOLA))}</h3><p>${esc(c.NOME)} · ${c.PROCESSO === 'PEDAGOGICO' ? 'Pedagógico' : 'Comercial'}${c.PRAZO ? ' · prazo ' + data(c.PRAZO) : ''}${c.RESPONSAVEL ? '' : ' · sem responsável'}</p>${c.PRAZO && dia(c.PRAZO) < h ? badge('Atrasado', 'red') : ''}</div></div>`).join('') : vazio('Nenhum passo pendente com você.')}</section>`;
 }
 
 /* ---------- Prospecção ---------- */
@@ -381,11 +461,75 @@ function clientesPage() {
   return heading('PARCERIAS QUE CONTINUAM', 'Clientes', 'Uma visão completa de cada escola, do contrato à renovação.', eu().gestor ? btn('⬆ Importar clientes', 'import', 'secondary', 'data-tipo="CLIENTES"') + btn('⬆ Importar kits', 'import', 'secondary', 'data-tipo="KITS"') : '') + filtros(false)
     + `<div class="section-grid">${lista.map(e => {
       const c = contratosDe(e.ID_ESCOLA).slice(-1)[0], ks = c ? kitsDoContrato(c.ID_CONTRATO) : [], ctc = c && T('CONTRATACOES').find(x => x.ID_CONTRATACAO === c.ID_CONTRATACAO);
-      const passos = ctc ? ETAPAS_CONTRATACAO.filter(([k]) => ctc[k]).length : 0, p = principal(e.ID_ESCOLA);
+      const ckC = ctc ? progressoCk(itensCk(ctc.ID_CONTRATACAO, 'COMERCIAL')) : null, ckP = ctc ? progressoCk(itensCk(ctc.ID_CONTRATACAO, 'PEDAGOGICO')) : null, p = principal(e.ID_ESCOLA);
       const ano = T('ANOS_LETIVOS').filter(a => a.ID_ESCOLA === e.ID_ESCOLA).slice(-1)[0];
       const ren = T('RENOVACOES').filter(r => r.ID_ESCOLA === e.ID_ESCOLA).slice(-1)[0];
-      return `<article class="panel client-card"><span class="school-icon">${esc(iniciais(e.NOME_ESCOLA))}</span><h2>${escolaBtn(e)}</h2><p>${esc(e.CIDADE || '')}${e.UF ? ' · ' + esc(e.UF) : ''}${e.FAIXA_ALUNOS ? ' · ' + esc(e.FAIXA_ALUNOS) + ' alunos' : ''}</p><div class="client-meta">${badge(c ? c.STATUS : 'Sem contrato')}${c ? badge(`Anos ${c.ANO_LETIVO_INICIAL}–${c.ANO_LETIVO_FINAL}`, 'orange') : ''}${ren ? badge('Renovação: ' + ren.STATUS, ren.STATUS === 'Renovada' ? 'teal' : 'purple') : ''}</div><div class="card-info">Comercial: <strong>${esc(nomeUsuario(ano && ano.RESPONSAVEL_COMERCIAL))}</strong><br>Pedagógico: <strong>${esc(nomeUsuario(ano && ano.RESPONSAVEL_PEDAGOGICO))}</strong><br>Contato: <strong>${esc(p ? p.NOME : '—')}</strong></div>${ctc ? `<small>Contratação <strong>${passos}/${ETAPAS_CONTRATACAO.length}</strong></small><div class="progress"><span style="width:${passos / ETAPAS_CONTRATACAO.length * 100}%"></span></div>` : `<small class="secondary-text">${c ? 'Contrato importado' : 'Contrato ainda não registrado'}</small>`}<div class="client-footer"><span>${ks.length} itens · ${dinheiro(valorKits(ks))}</span>${btn('Cliente 360° →', 'open-school', 'text', `data-id="${esc(e.ID_ESCOLA)}"`)}</div></article>`;
+      return `<article class="panel client-card"><span class="school-icon">${esc(iniciais(e.NOME_ESCOLA))}</span><h2>${escolaBtn(e)}</h2><p>${esc(e.CIDADE || '')}${e.UF ? ' · ' + esc(e.UF) : ''}${e.FAIXA_ALUNOS ? ' · ' + esc(e.FAIXA_ALUNOS) + ' alunos' : ''}</p><div class="client-meta">${badge(c ? c.STATUS : 'Sem contrato')}${c ? badge(`Anos ${c.ANO_LETIVO_INICIAL}–${c.ANO_LETIVO_FINAL}`, 'orange') : ''}${ren ? badge('Renovação: ' + ren.STATUS, ren.STATUS === 'Renovada' ? 'teal' : 'purple') : ''}</div><div class="card-info">Comercial: <strong>${esc(nomeUsuario(ano && ano.RESPONSAVEL_COMERCIAL))}</strong><br>Pedagógico: <strong>${esc(nomeUsuario(ano && ano.RESPONSAVEL_PEDAGOGICO))}</strong><br>Contato: <strong>${esc(p ? p.NOME : '—')}</strong></div>${ctc && ckC.t ? `<small>Comercial <strong>${ckC.f}/${ckC.t}</strong></small><div class="progress"><span style="width:${ckC.pct}%"></span></div>${ckP.t ? `<small>Pedagógico <strong>${ckP.f}/${ckP.t}</strong></small><div class="progress ped"><span style="width:${ckP.pct}%"></span></div>` : '<small class="secondary-text">Pedagógico: aguardando assinatura</small>'}` : `<small class="secondary-text">${c ? (ctc ? 'Checklist não ativado' : 'Contrato importado') : 'Contrato ainda não registrado'}</small>`}<div class="client-footer"><span>${ks.length} itens · ${dinheiro(valorKits(ks))}</span>${btn('Cliente 360° →', 'open-school', 'text', `data-id="${esc(e.ID_ESCOLA)}"`)}</div></article>`;
     }).join('')}</div>${!lista.length ? vazio('Nenhum cliente ainda. Quando você registrar uma contratação, a escola aparece aqui.') : ''}`;
+}
+
+/* ---------- Checklists ---------- */
+const itensCk = (idCtc, proc) => T('CHECKLIST').filter(c => c.ID_CONTRATACAO === idCtc && c.PROCESSO === proc).sort((a, b) => Number(a.ORDEM) - Number(b.ORDEM));
+const ckFeito = c => c.STATUS === 'Concluído' || c.STATUS === 'Não se aplica';
+function progressoCk(itens) { const f = itens.filter(ckFeito).length; return { f, t: itens.length, pct: itens.length ? f / itens.length * 100 : 0 }; }
+function checklistHtml(itens) {
+  const prox = itens.find(c => !ckFeito(c)), h = hoje();
+  return `<ul class="ck">${itens.map(c => {
+    const feito = ckFeito(c), na = c.STATUS === 'Não se aplica', atual = c === prox, atrasado = !feito && c.PRAZO && dia(c.PRAZO) < h;
+    const info = feito ? `${na ? 'Não se aplica' : 'Concluído'} em ${dataHora(c.CONCLUIDO_EM)}${c.CONCLUIDO_POR ? ' por ' + esc(nomeUsuario(c.CONCLUIDO_POR)) : ''}${c.OBSERVACAO ? ' · ' + esc(c.OBSERVACAO) : ''}`
+      : [c.PRAZO ? `Prazo ${data(c.PRAZO)}` : (atual ? 'Próximo passo' : ''), c.RESPONSAVEL ? esc(nomeUsuario(c.RESPONSAVEL)) : (c.PROCESSO === 'PEDAGOGICO' ? 'sem responsável' : '')].filter(Boolean).join(' · ');
+    return `<li class="ck-item ${feito ? 'feito' : ''} ${na ? 'na' : ''} ${atual ? 'atual' : ''} ${atrasado ? 'atrasado' : ''}">
+      <button class="ck-box" data-action="ck-toggle" data-ref="${esc(c.ID_ITEM_CHECK)}" aria-pressed="${feito}" aria-label="${feito ? 'Desmarcar' : 'Marcar como concluído'}: ${esc(c.NOME)}">${feito ? (na ? '–' : '✓') : ''}</button>
+      <div class="ck-text"><strong>${esc(c.NOME)}</strong>${sim(c.OBRIGATORIA) ? '' : ' <span class="pill">opcional</span>'}${atrasado ? ' ' + badge('Atrasado', 'red') : ''}<small>${info}</small></div>
+      ${!feito && !sim(c.OBRIGATORIA) ? btn('Não se aplica', 'ck-na', 'text', `data-ref="${esc(c.ID_ITEM_CHECK)}"`) : ''}
+    </li>`;
+  }).join('')}</ul>`;
+}
+function marcarCk(id, acao, botao) {
+  const c = T('CHECKLIST').find(x => x.ID_ITEM_CHECK === id); if (!c) return;
+  if (acao === 'reabrir') {
+    if (!(c.CONCLUIDO_POR === eu().id || eu().gestor)) { toast('Só quem marcou (ou um gestor) pode desmarcar.', true); return; }
+    if (!confirmar(botao, '↺')) { toast('Clique de novo na caixinha para desmarcar “' + c.NOME + '”.'); return; }
+  }
+  emSegundoPlano('“' + c.NOME + '”', () => {
+    const antes = { STATUS: c.STATUS, CONCLUIDO_EM: c.CONCLUIDO_EM, CONCLUIDO_POR: c.CONCLUIDO_POR };
+    if (acao === 'reabrir') Object.assign(c, { STATUS: 'Pendente', CONCLUIDO_EM: '', CONCLUIDO_POR: '' });
+    else Object.assign(c, { STATUS: acao === 'concluir' ? 'Concluído' : 'Não se aplica', CONCLUIDO_EM: agora(), CONCLUIDO_POR: eu().id });
+    return () => Object.assign(c, antes);
+  }, 'marcarChecklist', { ID_ITEM_CHECK: id, acao }, acao === 'reabrir' ? 'Item desmarcado.' : (c.CHAVE === 'ASSINADO_CLIENTE' && acao === 'concluir' ? 'Assinado! Onboarding liberado para o pedagógico.' : 'Marcado.'));
+}
+/** Lista das tentativas de contato (máx. configurado), com o próximo passo pendente. */
+function tentativasHtml(o) {
+  const m = maxTent(), n = Number(o.TENTATIVAS_PRE_REUNIAO || 0), aberta = !encerrada(o), h = hoje();
+  const ats = T('ATIVIDADES').filter(a => a.ID_OPORTUNIDADE === o.ID_OPORTUNIDADE).sort((a, b) => String(a.DATA_HORA).localeCompare(b.DATA_HORA));
+  const reab = ats.map(a => a.TIPO_ATIVIDADE).lastIndexOf('Reabertura');
+  const tent = ats.slice(reab + 1).filter(a => a.TIPO_ATIVIDADE === 'Tentativa de contato');
+  const semReg = Math.max(0, n - tent.length);
+  const linhas = Array.from({ length: m }, (_, k) => {
+    const i = k + 1;
+    if (i <= n) {
+      const a = i <= semReg ? null : tent[i - semReg - 1];
+      return `<li class="ck-item feito"><span class="ck-box" aria-hidden="true">✓</span><div class="ck-text"><strong>Tentativa ${i}${a && a.CANAL ? ' · ' + esc(a.CANAL) : ''}</strong><small>${a ? `${dataHora(a.DATA_HORA)} · ${esc(nomeUsuario(a.USUARIO))}${a.RESULTADO ? ' · ' + esc(a.RESULTADO) : ''}` : 'Registrada antes (importação)'}</small></div></li>`;
+    }
+    if (i === n + 1 && aberta) {
+      const atras = o.PROXIMA_TENTATIVA && dia(o.PROXIMA_TENTATIVA) < h;
+      return `<li class="ck-item atual ${atras ? 'atrasado' : ''}"><span class="ck-box" aria-hidden="true"></span><div class="ck-text"><strong>Tentativa ${i}</strong>${atras ? ' ' + badge('Atrasada', 'red') : ''}<small>${o.PROXIMA_TENTATIVA ? 'Prevista para ' + data(o.PROXIMA_TENTATIVA) : 'Pendente'} · marque pelo canal usado:</small><div class="ck-canais">${L('CANAL').map(c => btn(esc(c), 'tent-canal', 'secondary', `data-canal="${esc(c)}"`)).join('')}${btn('Com detalhes…', 'new-attempt', 'text')}</div></div></li>`;
+    }
+    return `<li class="ck-item futuro"><span class="ck-box" aria-hidden="true"></span><div class="ck-text"><strong>Tentativa ${i}</strong></div></li>`;
+  });
+  const fim = aberta && n >= m ? `<div class="notice" style="margin-top:12px">As ${m} tentativas foram feitas. Agende a apresentação pedagógica (aba Reuniões) ou registre “Não avançou”.</div>` : '';
+  return `<section class="info-box"><h3>Tentativas de contato · ${n} de ${m}</h3><p class="secondary-text">Ao marcar uma tentativa, a próxima fica pendente para daqui a ${cfg('INTERVALO_TENTATIVAS_PRE_DIAS', 7)} dias.</p><ul class="ck">${linhas.join('')}</ul>${fim}</section>`;
+}
+function registrarTentativaRapida(o, canal) {
+  const n = Number(o.TENTATIVAS_PRE_REUNIAO || 0); if (n >= maxTent()) return;
+  const tmp = { ID_ATIVIDADE: 'tmp-' + Date.now(), ID_ESCOLA: o.ID_ESCOLA, ID_OPORTUNIDADE: o.ID_OPORTUNIDADE, TIPO_ATIVIDADE: 'Tentativa de contato', CANAL: canal, DATA_HORA: agora(), USUARIO: eu().id, RESULTADO: '', DESCRICAO: '' };
+  emSegundoPlano('tentativa ' + (n + 1), () => {
+    const antes = { TENTATIVAS_PRE_REUNIAO: o.TENTATIVAS_PRE_REUNIAO, DATA_ULTIMA_TENTATIVA: o.DATA_ULTIMA_TENTATIVA, PROXIMA_TENTATIVA: o.PROXIMA_TENTATIVA };
+    Object.assign(o, { TENTATIVAS_PRE_REUNIAO: n + 1, DATA_ULTIMA_TENTATIVA: hoje(), PROXIMA_TENTATIVA: somarDias(hoje(), cfg('INTERVALO_TENTATIVAS_PRE_DIAS', 7)) });
+    D.tabelas.ATIVIDADES.push(tmp);
+    const tirarTmp = () => { const i = D.tabelas.ATIVIDADES.indexOf(tmp); if (i >= 0) D.tabelas.ATIVIDADES.splice(i, 1); };
+    return { desfazer: () => { Object.assign(o, antes); tirarTmp(); }, limpar: tirarTmp };
+  }, 'registrarTentativa', { ID_OPORTUNIDADE: o.ID_OPORTUNIDADE, CANAL: canal, DATA_HORA: tmp.DATA_HORA }, `Tentativa ${n + 1} registrada (${canal}).`);
 }
 
 /* ---------- Ficha da escola ---------- */
@@ -411,7 +555,7 @@ function corpoFicha(e, o) {
     }
     case 2: {
       const at = T('ATIVIDADES').filter(a => a.ID_ESCOLA === id).sort((a, b) => String(b.DATA_HORA).localeCompare(a.DATA_HORA));
-      return `<div class="inline-actions">${o && !encerrada(o) ? btn('+ Registrar tentativa', 'new-attempt') : ''}${btn('+ Anotação / atividade', 'new-activity', 'secondary')}</div>${o && !encerrada(o) ? `<div class="detail-note">Tentativas antes da reunião pedagógica: <strong>${Number(o.TENTATIVAS_PRE_REUNIAO || 0)} de ${maxTent()}</strong>. Intervalo padrão: ${cfg('INTERVALO_TENTATIVAS_PRE_DIAS', 7)} dias.</div>` : ''}` + linhaTempo(at.map(a => ({ quando: a.DATA_HORA, quem: nomeUsuario(a.USUARIO), tipo: a.TIPO_ATIVIDADE + (a.CANAL ? ' · ' + a.CANAL : ''), texto: [a.RESULTADO && 'Resultado: ' + a.RESULTADO, a.DESCRICAO, a.PROXIMA_ACAO && `Próxima ação: ${a.PROXIMA_ACAO} (${data(a.PRAZO_PROXIMA_ACAO)})`].filter(Boolean).join('\n') })));
+      return (o && e.STATUS_GERAL !== 'Cliente' ? tentativasHtml(o) : '') + `<h3 class="sec-title">Registro de tratativas e atividades</h3><div class="inline-actions">${btn('+ Anotação / atividade', 'new-activity', 'secondary')}</div>` + linhaTempo(at.map(a => ({ quando: a.DATA_HORA, quem: nomeUsuario(a.USUARIO), tipo: a.TIPO_ATIVIDADE + (a.CANAL ? ' · ' + a.CANAL : ''), texto: [a.RESULTADO && 'Resultado: ' + a.RESULTADO, a.DESCRICAO, a.PROXIMA_ACAO && `Próxima ação: ${a.PROXIMA_ACAO} (${data(a.PRAZO_PROXIMA_ACAO)})`].filter(Boolean).join('\n') })));
     }
     case 3: {
       const rs = reunioes().filter(r => r.ID_ESCOLA === id).reverse();
@@ -420,7 +564,7 @@ function corpoFicha(e, o) {
     case 4: {
       const ctcs = T('CONTRATACOES').filter(c => c.ID_ESCOLA === id);
       return `<div class="inline-actions">${o && !encerrada(o) ? btn('Registrar contratação (ganho)', 'new-contract') : ''}${o && !encerrada(o) && o.ETAPA === L('ETAPA_PROSPECCAO').slice(-1)[0] ? btn('Status pós-comercial', 'edit-opp', 'secondary') : ''}${e.STATUS_GERAL === 'Cliente' ? btn('Nova contratação', 'new-contract', 'secondary') : ''}</div>${o && !encerrada(o) ? `<div class="detail-note">Etapa atual: <strong>${esc(o.ETAPA)}</strong>${o.STATUS && o.STATUS !== 'Em andamento' ? ` · status pós-comercial: <strong>${esc(o.STATUS)}</strong>` : ''}. Ao registrar a contratação, a escola passa para Clientes e são criados o contrato, o ano letivo e os kits.</div>` : ''}`
-        + (ctcs.length ? ctcs.map(c => { const feitos = ETAPAS_CONTRATACAO.filter(([k]) => c[k]).length; return `<section class="info-box"><h3>Contratação ${esc(c.ID_CONTRATACAO)} ${badge(c.STATUS || '—')}</h3><p class="secondary-text">Ganho em ${data(c.DATA_GANHO)} · ano letivo inicial ${esc(c.ANO_LETIVO_INICIAL)} · ${esc(c.DURACAO_ANOS)} ano(s) · ${esc(nomeUsuario(c.RESPONSAVEL))}</p><small>Etapas concluídas <strong>${feitos}/${ETAPAS_CONTRATACAO.length}</strong></small><div class="progress"><span style="width:${feitos / ETAPAS_CONTRATACAO.length * 100}%"></span></div><ul class="checklist">${ETAPAS_CONTRATACAO.map(([k, r]) => `<li class="${c[k] ? 'done' : ''}">${c[k] ? '✓' : '○'} ${r}${c[k] ? ' · ' + data(c[k]) : ''}</li>`).join('')}</ul>${c.OBSERVACOES ? `<p>${esc(c.OBSERVACOES)}</p>` : ''}<div class="inline-actions">${btn('Atualizar etapas', 'edit-hiring', 'secondary', `data-ref="${esc(c.ID_CONTRATACAO)}"`)}</div></section>`; }).join('') : vazio('Nenhuma contratação registrada ainda.'));
+        + (ctcs.length ? ctcs.map(c => { const it = itensCk(c.ID_CONTRATACAO, 'COMERCIAL'), p = progressoCk(it); return `<section class="info-box"><h3>Contratação ${esc(c.ID_CONTRATACAO)} ${badge(c.STATUS || '—', c.STATUS === 'Concluída' ? 'teal' : 'orange')}</h3><p class="secondary-text">Ganho em ${data(c.DATA_GANHO)} · ano letivo inicial ${esc(c.ANO_LETIVO_INICIAL)} · ${esc(c.DURACAO_ANOS)} ano(s) · ${esc(nomeUsuario(c.RESPONSAVEL))}</p>${it.length ? `<small>Checklist comercial <strong>${p.f}/${p.t}</strong></small><div class="progress"><span style="width:${p.pct}%"></span></div>${checklistHtml(it)}<p class="visual-tip">Clique na caixinha para marcar: o sistema registra data, hora e quem marcou. Ao marcar “Assinado pelo cliente”, o onboarding é liberado para o pedagógico.</p>` : `<div class="notice">Esta contratação foi registrada antes dos checklists. ${btn('Ativar checklist', 'ck-iniciar', '', `data-ref="${esc(c.ID_CONTRATACAO)}"`)}</div>`}${c.OBSERVACOES ? `<p>${esc(c.OBSERVACOES)}</p>` : ''}<div class="inline-actions">${btn('Observações e status', 'edit-hiring', 'text', `data-ref="${esc(c.ID_CONTRATACAO)}"`)}</div></section>`; }).join('') : vazio('Nenhuma contratação registrada ainda.'));
     }
     case 5: {
       const cs = contratosDe(id), docs = T('DOCUMENTOS').filter(d => d.ID_ESCOLA === id);
@@ -436,7 +580,9 @@ function corpoFicha(e, o) {
     }
     case 6: {
       const ps = T('PEDAGOGICO').filter(p => p.ID_ESCOLA === id).sort((a, b) => String(b.DATA_HORA).localeCompare(a.DATA_HORA));
-      return `<div class="inline-actions">${btn('+ Registro pedagógico', 'new-ped')}</div>` + (ps.length ? ps.map(p => `<div class="timeline-item"><small>${dataHora(p.DATA_HORA)} · ${esc(nomeUsuario(p.RESPONSAVEL))}<span class="activity-type">${esc(p.TIPO_ATENDIMENTO)}</span> ${badge(p.STATUS || '—', p.STATUS === 'Realizado' ? 'teal' : 'orange')}</small><p>${esc(p.OBSERVACOES)}</p>${p.PARTICIPANTES ? `<p class="secondary-text">Participantes: ${esc(p.PARTICIPANTES)}</p>` : ''}${p.PROXIMA_ACAO ? `<p class="secondary-text">Próxima ação: ${esc(p.PROXIMA_ACAO)} (${data(p.PRAZO_PROXIMA_ACAO)})</p>` : ''}${btn('Editar', 'edit-ped', 'text', `data-ref="${esc(p.ID_PEDAGOGICO)}"`)}</div>`).join('') : vazio('Nenhum registro pedagógico.'));
+      const ctcsP = T('CONTRATACOES').filter(c => c.ID_ESCOLA === id);
+      const blocos = ctcsP.map(c => { const it = itensCk(c.ID_CONTRATACAO, 'PEDAGOGICO'), p = progressoCk(it); return it.length ? `<section class="info-box"><h3>Acompanhamento pedagógico · ${esc(c.ID_CONTRATACAO)}</h3><small>Concluídos <strong>${p.f}/${p.t}</strong></small><div class="progress"><span style="width:${p.pct}%"></span></div>${checklistHtml(it)}<p class="visual-tip">Cada acompanhamento mensal fica com prazo de 30 dias depois do anterior.</p></section>` : `<div class="notice">Contratação ${esc(c.ID_CONTRATACAO)}: o onboarding é liberado quando o contrato for marcado como “Assinado pelo cliente” na aba Comercial.</div>`; }).join('');
+      return blocos + `<h3 class="sec-title">Registros pedagógicos</h3><div class="inline-actions">${btn('+ Registro pedagógico', 'new-ped', 'secondary')}</div>` + (ps.length ? ps.map(p => `<div class="timeline-item"><small>${dataHora(p.DATA_HORA)} · ${esc(nomeUsuario(p.RESPONSAVEL))}<span class="activity-type">${esc(p.TIPO_ATENDIMENTO)}</span> ${badge(p.STATUS || '—', p.STATUS === 'Realizado' ? 'teal' : 'orange')}</small><p>${esc(p.OBSERVACOES)}</p>${p.PARTICIPANTES ? `<p class="secondary-text">Participantes: ${esc(p.PARTICIPANTES)}</p>` : ''}${p.PROXIMA_ACAO ? `<p class="secondary-text">Próxima ação: ${esc(p.PROXIMA_ACAO)} (${data(p.PRAZO_PROXIMA_ACAO)})</p>` : ''}${btn('Editar', 'edit-ped', 'text', `data-ref="${esc(p.ID_PEDAGOGICO)}"`)}</div>`).join('') : vazio('Nenhum registro pedagógico.'));
     }
     case 7: {
       const ds = T('DEMANDAS').filter(d => d.ID_ESCOLA === id);
@@ -542,6 +688,7 @@ function configPage() {
   return heading('O QUE SUSTENTA O SISTEMA', 'Configurações', 'Listas e parâmetros lidos da planilha.', (eu().gestor ? btn('⬆ Importar escolas', 'import') : '') + btn('↻ Atualizar dados', 'refresh', 'secondary') + btn('Alterar minha senha', 'change-pass', 'secondary'))
     + `<div class="notice">Planilha conectada: <strong>${esc(D.planilha)}</strong> · versão ${esc(D.versao)} · dados carregados em ${dataHora(D.carregadoEm)}. Para mudar listas ou parâmetros, edite as abas LISTAS e CONFIGURACOES diretamente na planilha e clique em “Atualizar dados”.</div>`
     + `<div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>Parâmetros</h2></div><div class="table-wrap"><table><thead><tr><th>CHAVE</th><th>VALOR</th><th>DESCRIÇÃO</th></tr></thead><tbody>${Object.entries(D.config).map(([k, c]) => `<tr><td>${esc(k)}</td><td>${esc(c.valor)}${c.ano ? ' <small>(' + esc(c.ano) + ')</small>' : ''}</td><td>${esc(c.descricao)}</td></tr>`).join('')}</tbody></table></div></section>`
+    + `<section class="panel"><div class="panel-head"><h2>Etapas dos checklists</h2></div><div class="table-wrap"><table><thead><tr><th>PROCESSO</th><th>ORDEM</th><th>ETAPA</th><th>OBRIG.</th><th>PRAZO</th></tr></thead><tbody>${T('CHECKLIST_ETAPAS').filter(e => sim(e.ATIVO)).sort((a, b) => String(a.PROCESSO).localeCompare(b.PROCESSO) || a.ORDEM - b.ORDEM).map(e => `<tr><td>${esc(e.PROCESSO)}</td><td>${esc(e.ORDEM)}</td><td>${esc(e.NOME)}${e.GATILHO ? ' ' + badge('libera pedagógico', 'orange') : ''}</td><td>${sim(e.OBRIGATORIA) ? 'Sim' : 'Opcional'}</td><td>${Number(e.PRAZO_DIAS) ? e.PRAZO_DIAS + ' dias após o anterior' : '—'}</td></tr>`).join('')}</tbody></table></div><p class="visual-tip">Para mudar nomes, ordem ou prazos, edite a aba CHECKLIST_ETAPAS da planilha. Vale para as próximas contratações.</p></section>`
     + `<section class="panel"><div class="panel-head"><h2>Listas</h2></div>${Object.entries(D.listas).map(([k, vs]) => `<h4 style="margin:14px 0 8px">${esc(k)}</h4><div class="permissions">${vs.map(v => badge(v, '')).join('')}</div>`).join('')}</section></div>`;
 }
 
@@ -668,7 +815,7 @@ function formDemanda(idEscola) {
     v => salvar('DEMANDAS', v, 'Demanda criada.'));
 }
 function formUsuario(u) {
-  showForm(u.ID_USUARIO ? 'Editar pessoa' : 'Nova pessoa', linha(campo('Nome (como aparece nas menções)', 'NOME', 'text', u.NOME, true), campo('E-mail de login', 'EMAIL_GOOGLE', 'email', u.EMAIL_GOOGLE, true)) + linha(campo('Setor', 'SETOR', 'text', u.SETOR), campo('Cargo', 'CARGO', 'text', u.CARGO)) + linha(lista('Perfil', 'PERFIL_PERMISSAO', opts(ST.perfil, u.PERFIL_PERMISSAO || 'Operacional', false), true), campo('ID da agenda Google (opcional)', 'GOOGLE_CALENDAR_ID', 'text', u.GOOGLE_CALENDAR_ID)) + marca('Ativo (pode entrar no CRM)', 'ATIVO', u.ID_USUARIO ? sim(u.ATIVO) : true) + marca('Recebe notificações por e-mail (uso futuro)', 'RECEBE_EMAIL_NOTIFICACAO', sim(u.RECEBE_EMAIL_NOTIFICACAO)) + (u.ID_USUARIO ? '' : '<p class="visual-tip">No primeiro acesso, a pessoa entra com a senha provisória e cria a própria senha.</p>'),
+  showForm(u.ID_USUARIO ? 'Editar pessoa' : 'Nova pessoa', linha(campo('Nome (como aparece nas menções)', 'NOME', 'text', u.NOME, true), campo('E-mail de login', 'EMAIL_GOOGLE', 'email', u.EMAIL_GOOGLE, true)) + linha(campo('Setor', 'SETOR', 'text', u.SETOR, false, 'list="setores" placeholder="Ex.: Comercial, Pedagógico Pós"'), campo('Cargo', 'CARGO', 'text', u.CARGO)) + `<datalist id="setores">${[...new Set(['Comercial', 'Pedagógico', 'Pedagógico Pós', 'SAC', 'Financeiro'].concat(usuarios().map(x => x.SETOR).filter(Boolean)))].map(x => `<option value="${esc(x)}">`).join('')}</datalist><p class="visual-tip">Quem estiver no setor “${esc((D.config.SETOR_POS_VENDA || {}).valor || 'Pedagógico Pós')}” recebe o onboarding quando um contrato é assinado.</p>` + linha(lista('Perfil', 'PERFIL_PERMISSAO', opts(ST.perfil, u.PERFIL_PERMISSAO || 'Operacional', false), true), campo('ID da agenda Google (opcional)', 'GOOGLE_CALENDAR_ID', 'text', u.GOOGLE_CALENDAR_ID)) + marca('Ativo (pode entrar no CRM)', 'ATIVO', u.ID_USUARIO ? sim(u.ATIVO) : true) + marca('Recebe notificações por e-mail (uso futuro)', 'RECEBE_EMAIL_NOTIFICACAO', sim(u.RECEBE_EMAIL_NOTIFICACAO)) + (u.ID_USUARIO ? '' : '<p class="visual-tip">No primeiro acesso, a pessoa entra com a senha provisória e cria a própria senha.</p>'),
     v => salvar('USUARIOS', u.ID_USUARIO ? { ID_USUARIO: u.ID_USUARIO, ...v } : v, 'Pessoa salva.'));
 }
 
@@ -855,6 +1002,10 @@ addEventListener('click', async e => {
       case 'edit-user': formUsuario(achar('USUARIOS', 'ID_USUARIO', ref)); break;
       case 'reset-pass': if (confirmar(b, 'Clique de novo para confirmar')) { const r = await api('resetarSenha', { idUsuario: ref }); toast(r.mensagem); } break;
       case 'export-csv': exportarCsv(); break;
+      case 'ck-toggle': { const c = T('CHECKLIST').find(x => x.ID_ITEM_CHECK === ref); if (c) marcarCk(ref, ckFeito(c) ? 'reabrir' : 'concluir', b); break; }
+      case 'ck-na': marcarCk(ref, 'nao_se_aplica', b); break;
+      case 'ck-iniciar': await gravar('iniciarChecklist', { ID_CONTRATACAO: ref }, 'Checklist ativado.'); break;
+      case 'tent-canal': registrarTentativaRapida(o, b.dataset.canal); break;
       case 'import': abrirImportacao(b.dataset.tipo); break;
       case 'imp-modelo': baixarModelo(); break;
       case 'imp-voltar': imp.previa = null; telaImportacao(); break;
@@ -874,9 +1025,13 @@ addEventListener('change', async e => {
   if (el.id === 'owner-filter') { owner = el.value; render(); }
   if (el.id === 'stage-filter') { statusFilter = el.value; render(); }
   if (el.dataset.task) {
-    el.disabled = true;
-    try { await salvar('TAREFAS', { ID_TAREFA: el.dataset.task, STATUS: el.checked ? 'Concluída' : 'Aberta' }, el.checked ? 'Tarefa concluída.' : 'Tarefa reaberta.'); }
-    catch (err) { el.checked = !el.checked; el.disabled = false; toast(err.message); }
+    const t = T('TAREFAS').find(x => x.ID_TAREFA === el.dataset.task); if (!t) return;
+    const novo = el.checked ? 'Concluída' : 'Aberta';
+    emSegundoPlano('tarefa “' + t.TITULO + '”', () => {
+      const antes = { STATUS: t.STATUS, CONCLUIDA_EM: t.CONCLUIDA_EM };
+      t.STATUS = novo; t.CONCLUIDA_EM = novo === 'Concluída' ? agora() : '';
+      return () => Object.assign(t, antes);
+    }, 'salvar', { tabela: 'TAREFAS', registro: { ID_TAREFA: t.ID_TAREFA, STATUS: novo } }, novo === 'Concluída' ? 'Tarefa concluída.' : 'Tarefa reaberta.');
   }
 });
 addEventListener('input', e => {
@@ -896,11 +1051,16 @@ addEventListener('drop', async e => {
   const col = e.target.closest('.kanban-column'); if (!col) return;
   e.preventDefault(); col.classList.remove('drop-active');
   const id = dragId || e.dataTransfer.getData('text/plain'), o = T('OPORTUNIDADES').find(x => x.ID_OPORTUNIDADE === id);
-  if (o && o.ETAPA !== col.dataset.stage) { try { await gravar('moverEtapa', { ID_OPORTUNIDADE: id, ETAPA: col.dataset.stage }, 'Etapa atualizada: ' + col.dataset.stage); } catch (err) { toast(err.message); } }
+  if (o && o.ETAPA !== col.dataset.stage) {
+    const etapa = col.dataset.stage, e = escola(o.ID_ESCOLA);
+    emSegundoPlano('etapa de ' + (e ? e.NOME_ESCOLA : 'escola'), () => { const antes = o.ETAPA; o.ETAPA = etapa; return () => { o.ETAPA = antes; }; },
+      'moverEtapa', { ID_OPORTUNIDADE: id, ETAPA: etapa }, 'Etapa atualizada: ' + etapa);
+  }
 });
 addEventListener('dragend', () => { dragId = null; document.querySelectorAll('.drop-active').forEach(c => c.classList.remove('drop-active')); });
 addEventListener('hashchange', () => { const p = location.hash.slice(1); if (D && p !== page) setPage(p); });
 $('menu-toggle').addEventListener('click', () => $('sidebar').classList.toggle('open'));
+setInterval(() => { if (D && document.visibilityState === 'visible' && !ocupado && !fila.length && !formDialog.open && Date.now() - (recarregar.ultima || 0) > 180000) { recarregar.ultima = Date.now(); recarregar(); } }, 60000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && D && !ocupado && !formDialog.open && Date.now() - (recarregar.ultima || 0) > 120000) { recarregar.ultima = Date.now(); recarregar(); } });
 detail.addEventListener('close', () => { detailId = null; });
 
