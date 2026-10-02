@@ -55,6 +55,10 @@ body.busy{cursor:progress}
 .auth-card .visual-tip{margin-top:16px;line-height:1.6}
 .form-body>p.subtitle{margin-bottom:18px}
 @media(max-width:760px){.toolbar input[type=search]{flex:1 1 100%;min-width:0}}
+.imp-table{max-height:320px;overflow:auto;border:1px solid var(--border);border-radius:10px;margin-top:10px}
+.imp-table td{font-size:12px;vertical-align:top}
+details summary{cursor:pointer;margin-bottom:6px}
+.heading-actions{display:flex;gap:10px;flex-wrap:wrap}
 </style>
   <script>
     /* ===== ENDEREÇO DA API (link /exec do Apps Script) ===== */
@@ -358,7 +362,7 @@ function prospeccao() {
   const extra = `<select id="stage-filter" aria-label="Situação"><option value="">Em andamento</option><option value="perdidas" ${statusFilter === 'perdidas' ? 'selected' : ''}>Não avançaram</option></select>`;
   const tabela = `<section class="panel table-wrap"><table><thead><tr><th>ESCOLA</th><th>ETAPA / STATUS</th><th>RESPONSÁVEL</th><th>TENTATIVAS</th><th>ÚLTIMA</th><th>PRÓXIMA</th></tr></thead><tbody>${ops.map(o => `<tr><td>${escolaCell(escola(o.ID_ESCOLA))}</td><td>${badge(o.STATUS === 'Perdido' ? 'Não avançou' : o.ETAPA || '—', o.STATUS === 'Perdido' ? 'red' : 'teal')}${o.STATUS === 'Perdido' ? `<br><small class="secondary-text">${esc(o.MOTIVO_PERDA)}</small>` : o.STATUS && o.STATUS !== 'Em andamento' ? ' ' + badge(o.STATUS, 'orange') : ''}</td><td>${esc(nomeUsuario(o.RESPONSAVEL_ATUAL))}</td><td>${Number(o.TENTATIVAS_PRE_REUNIAO || 0)} / ${maxTent()}</td><td>${curta(o.DATA_ULTIMA_TENTATIVA)}</td><td>${o.STATUS === 'Perdido' ? '—' : curta(o.PROXIMA_TENTATIVA)}</td></tr>`).join('')}</tbody></table>${!ops.length ? vazio(T('ESCOLAS').length ? 'Nenhuma escola encontrada para estes filtros.' : 'Ainda não há escolas cadastradas. Clique em “+ Nova escola” para começar.') : ''}</section>`;
   const kanban = `<p class="visual-tip">Arraste os cards entre as etapas ou altere a etapa na ficha da escola.</p><div class="kanban">${etapas.map(et => { const col = ops.filter(o => o.ETAPA === et); return `<section class="kanban-column" data-stage="${esc(et)}"><div class="kanban-heading"><span><i class="stage-dot"></i>${esc(et)}</span>${badge(col.length, '')}</div>${col.map(cardLead).join('')}${!col.length ? vazio('Novas conversas<br>podem chegar aqui.') : ''}</section>`; }).join('')}</div>`;
-  return heading('DO PRIMEIRO OLÁ À PARCERIA', 'Prospecção', 'Acompanhe cada conversa e transforme interesse em conexão.', btn('+ Nova escola', 'new-school')) + filtros(statusFilter !== 'perdidas', extra) + (view === 'list' || statusFilter === 'perdidas' ? tabela : kanban);
+  return heading('DO PRIMEIRO OLÁ À PARCERIA', 'Prospecção', 'Acompanhe cada conversa e transforme interesse em conexão.', (eu().gestor ? btn('⬆ Importar', 'import', 'secondary', 'data-tipo="PROSPECCAO"') : '') + btn('+ Nova escola', 'new-school')) + filtros(statusFilter !== 'perdidas', extra) + (view === 'list' || statusFilter === 'perdidas' ? tabela : kanban);
 }
 function cardLead(o) {
   const e = escola(o.ID_ESCOLA), c = principal(o.ID_ESCOLA), n = Number(o.TENTATIVAS_PRE_REUNIAO || 0), m = maxTent();
@@ -374,13 +378,13 @@ function clientesPage() {
     if (owner && !anos.some(a => a.RESPONSAVEL_COMERCIAL === owner || a.RESPONSAVEL_PEDAGOGICO === owner)) return false;
     return !q || norm([e.NOME_ESCOLA, e.CIDADE, e.UF, e.CNPJ, (principal(e.ID_ESCOLA) || {}).NOME].join(' ')).includes(q);
   });
-  return heading('PARCERIAS QUE CONTINUAM', 'Clientes', 'Uma visão completa de cada escola, do contrato à renovação.') + filtros(false)
+  return heading('PARCERIAS QUE CONTINUAM', 'Clientes', 'Uma visão completa de cada escola, do contrato à renovação.', eu().gestor ? btn('⬆ Importar clientes', 'import', 'secondary', 'data-tipo="CLIENTES"') + btn('⬆ Importar kits', 'import', 'secondary', 'data-tipo="KITS"') : '') + filtros(false)
     + `<div class="section-grid">${lista.map(e => {
       const c = contratosDe(e.ID_ESCOLA).slice(-1)[0], ks = c ? kitsDoContrato(c.ID_CONTRATO) : [], ctc = c && T('CONTRATACOES').find(x => x.ID_CONTRATACAO === c.ID_CONTRATACAO);
       const passos = ctc ? ETAPAS_CONTRATACAO.filter(([k]) => ctc[k]).length : 0, p = principal(e.ID_ESCOLA);
       const ano = T('ANOS_LETIVOS').filter(a => a.ID_ESCOLA === e.ID_ESCOLA).slice(-1)[0];
       const ren = T('RENOVACOES').filter(r => r.ID_ESCOLA === e.ID_ESCOLA).slice(-1)[0];
-      return `<article class="panel client-card"><span class="school-icon">${esc(iniciais(e.NOME_ESCOLA))}</span><h2>${escolaBtn(e)}</h2><p>${esc(e.CIDADE || '')}${e.UF ? ' · ' + esc(e.UF) : ''}${e.FAIXA_ALUNOS ? ' · ' + esc(e.FAIXA_ALUNOS) + ' alunos' : ''}</p><div class="client-meta">${badge(c ? c.STATUS : 'Sem contrato')}${c ? badge(`Anos ${c.ANO_LETIVO_INICIAL}–${c.ANO_LETIVO_FINAL}`, 'orange') : ''}${ren ? badge('Renovação: ' + ren.STATUS, ren.STATUS === 'Renovada' ? 'teal' : 'purple') : ''}</div><div class="card-info">Comercial: <strong>${esc(nomeUsuario(ano && ano.RESPONSAVEL_COMERCIAL))}</strong><br>Pedagógico: <strong>${esc(nomeUsuario(ano && ano.RESPONSAVEL_PEDAGOGICO))}</strong><br>Contato: <strong>${esc(p ? p.NOME : '—')}</strong></div><small>Contratação <strong>${passos}/${ETAPAS_CONTRATACAO.length}</strong></small><div class="progress"><span style="width:${passos / ETAPAS_CONTRATACAO.length * 100}%"></span></div><div class="client-footer"><span>${ks.length} itens · ${dinheiro(valorKits(ks))}</span>${btn('Cliente 360° →', 'open-school', 'text', `data-id="${esc(e.ID_ESCOLA)}"`)}</div></article>`;
+      return `<article class="panel client-card"><span class="school-icon">${esc(iniciais(e.NOME_ESCOLA))}</span><h2>${escolaBtn(e)}</h2><p>${esc(e.CIDADE || '')}${e.UF ? ' · ' + esc(e.UF) : ''}${e.FAIXA_ALUNOS ? ' · ' + esc(e.FAIXA_ALUNOS) + ' alunos' : ''}</p><div class="client-meta">${badge(c ? c.STATUS : 'Sem contrato')}${c ? badge(`Anos ${c.ANO_LETIVO_INICIAL}–${c.ANO_LETIVO_FINAL}`, 'orange') : ''}${ren ? badge('Renovação: ' + ren.STATUS, ren.STATUS === 'Renovada' ? 'teal' : 'purple') : ''}</div><div class="card-info">Comercial: <strong>${esc(nomeUsuario(ano && ano.RESPONSAVEL_COMERCIAL))}</strong><br>Pedagógico: <strong>${esc(nomeUsuario(ano && ano.RESPONSAVEL_PEDAGOGICO))}</strong><br>Contato: <strong>${esc(p ? p.NOME : '—')}</strong></div>${ctc ? `<small>Contratação <strong>${passos}/${ETAPAS_CONTRATACAO.length}</strong></small><div class="progress"><span style="width:${passos / ETAPAS_CONTRATACAO.length * 100}%"></span></div>` : `<small class="secondary-text">${c ? 'Contrato importado' : 'Contrato ainda não registrado'}</small>`}<div class="client-footer"><span>${ks.length} itens · ${dinheiro(valorKits(ks))}</span>${btn('Cliente 360° →', 'open-school', 'text', `data-id="${esc(e.ID_ESCOLA)}"`)}</div></article>`;
     }).join('')}</div>${!lista.length ? vazio('Nenhum cliente ainda. Quando você registrar uma contratação, a escola aparece aqui.') : ''}`;
 }
 
@@ -535,7 +539,7 @@ function exportarCsv() {
 
 /* ---------- Configurações ---------- */
 function configPage() {
-  return heading('O QUE SUSTENTA O SISTEMA', 'Configurações', 'Listas e parâmetros lidos da planilha.', btn('↻ Atualizar dados', 'refresh', 'secondary') + btn('Alterar minha senha', 'change-pass', 'secondary'))
+  return heading('O QUE SUSTENTA O SISTEMA', 'Configurações', 'Listas e parâmetros lidos da planilha.', (eu().gestor ? btn('⬆ Importar escolas', 'import') : '') + btn('↻ Atualizar dados', 'refresh', 'secondary') + btn('Alterar minha senha', 'change-pass', 'secondary'))
     + `<div class="notice">Planilha conectada: <strong>${esc(D.planilha)}</strong> · versão ${esc(D.versao)} · dados carregados em ${dataHora(D.carregadoEm)}. Para mudar listas ou parâmetros, edite as abas LISTAS e CONFIGURACOES diretamente na planilha e clique em “Atualizar dados”.</div>`
     + `<div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>Parâmetros</h2></div><div class="table-wrap"><table><thead><tr><th>CHAVE</th><th>VALOR</th><th>DESCRIÇÃO</th></tr></thead><tbody>${Object.entries(D.config).map(([k, c]) => `<tr><td>${esc(k)}</td><td>${esc(c.valor)}${c.ano ? ' <small>(' + esc(c.ano) + ')</small>' : ''}</td><td>${esc(c.descricao)}</td></tr>`).join('')}</tbody></table></div></section>`
     + `<section class="panel"><div class="panel-head"><h2>Listas</h2></div>${Object.entries(D.listas).map(([k, vs]) => `<h4 style="margin:14px 0 8px">${esc(k)}</h4><div class="permissions">${vs.map(v => badge(v, '')).join('')}</div>`).join('')}</section></div>`;
@@ -668,6 +672,135 @@ function formUsuario(u) {
     v => salvar('USUARIOS', u.ID_USUARIO ? { ID_USUARIO: u.ID_USUARIO, ...v } : v, 'Pessoa salva.'));
 }
 
+/* ---------- Importação ---------- */
+const IMPORT = {"PROSPECCAO":{"titulo":"Prospecção","descricao":"Escolas que ainda estão em negociação (ou que não avançaram). Cada linha cria a escola, o contato principal e a oportunidade no funil.","colunas":[["NOME_ESCOLA","Nome da escola",true,"Colégio Horizonte"],["CIDADE","Cidade",true,"Curitiba"],["UF","Sigla do estado, 2 letras",true,"PR"],["CNPJ","CNPJ (com ou sem pontuação). Evita duplicar escolas",false,"12.345.678/0001-90"],["RAZAO_SOCIAL","Razão social",false,""],["ENDERECO","Endereço",false,""],["FAIXA_ALUNOS","Faixa de alunos (texto livre)",false,"201 a 500"],["SEGMENTOS_ATUAIS","Segmentos separados por vírgula, como na aba LISTAS (SEGMENTO)",false,"Educação Infantil, Ensino Fundamental Iniciais"],["DATA_ABERTURA","Data de abertura da escola (dd/mm/aaaa)",false,""],["CONTATO_NOME","Nome do contato principal",false,"Mariana Costa"],["CONTATO_CARGO","Cargo / função do contato",false,"Diretora"],["CONTATO_TELEFONE","Telefone com DDD",false,"(41) 99999-0000"],["CONTATO_EMAIL","E-mail do contato",false,"mariana@escola.com.br"],["ETAPA","Etapa do funil, como na aba LISTAS (ETAPA_PROSPECCAO). Vazio = Contato inicial",false,"Apresentação pedagógica"],["SITUACAO","Em andamento (padrão) ou Não avançou",false,"Em andamento"],["MOTIVO_PERDA","Obrigatório se SITUACAO = Não avançou. Como na aba LISTAS (MOTIVO_PERDA)",false,""],["DATA_ENCERRAMENTO","Data em que não avançou (dd/mm/aaaa)",false,""],["RESPONSAVEL_EMAIL","E-mail de login da consultora responsável (precisa estar na Equipe). Vazio = quem importa",false,"bia@alicercesdoensino.com.br"],["DATA_ENTRADA","Data em que o lead chegou (dd/mm/aaaa). Vazio = hoje",false,"15/08/2026"],["ORIGEM_LEAD","De onde veio o lead",false,"Landing page"],["COMO_CONHECEU","Como conheceu a Alicerces",false,""],["SISTEMA_ATUAL","Material / sistema que a escola usa hoje",false,""],["CARGO_LEAD","Cargo de quem entrou em contato",false,""],["DESAFIO_EDUCACIONAL","Desafio educacional relatado",false,""],["TENTATIVAS_REALIZADAS","Quantas tentativas de contato já foram feitas (0 a 7)",false,"2"],["DATA_ULTIMA_TENTATIVA","Data da última tentativa (dd/mm/aaaa)",false,""],["PROXIMA_TENTATIVA","Data prevista da próxima tentativa (dd/mm/aaaa)",false,""],["OBSERVACOES","Observações",false,""]]},"CLIENTES":{"titulo":"Clientes","descricao":"Escolas que já são parceiras. Cada linha cria a escola como cliente, o contato principal e, se houver dados, o contrato e o ano letivo atual. Os kits vão na aba KITS.","colunas":[["NOME_ESCOLA","Nome da escola",true,"Colégio Vila Verde"],["CIDADE","Cidade",true,"Curitiba"],["UF","Sigla do estado, 2 letras",true,"PR"],["CNPJ","CNPJ (com ou sem pontuação). Recomendado: é por ele que os kits encontram a escola",false,"11.222.333/0001-44"],["RAZAO_SOCIAL","Razão social",false,""],["ENDERECO","Endereço",false,""],["FAIXA_ALUNOS","Faixa de alunos (texto livre)",false,""],["SEGMENTOS_ATUAIS","Segmentos separados por vírgula, como na aba LISTAS (SEGMENTO)",false,"Educação Infantil"],["DATA_ABERTURA","Data de abertura da escola (dd/mm/aaaa)",false,""],["CONTATO_NOME","Nome do contato principal",false,"Renata Silva"],["CONTATO_CARGO","Cargo / função do contato",false,"Diretora"],["CONTATO_TELEFONE","Telefone com DDD",false,""],["CONTATO_EMAIL","E-mail do contato",false,""],["RESPONSAVEL_COMERCIAL_EMAIL","E-mail de login do responsável comercial (precisa estar na Equipe). Vazio = quem importa",false,""],["RESPONSAVEL_PEDAGOGICO_EMAIL","E-mail de login do responsável pedagógico (precisa estar na Equipe)",false,""],["NUMERO_CONTRATO","Número do contrato. Se vazio e sem ano letivo, a escola entra sem contrato",false,"CT-2025-014"],["ANO_LETIVO_INICIAL","Primeiro ano letivo do contrato (obrigatório para registrar contrato)",false,"2025"],["DURACAO_ANOS","Duração em anos. Vazio = padrão da aba CONFIGURACOES",false,"3"],["ANO_LETIVO_FINAL","Último ano letivo. Vazio = inicial + duração - 1",false,""],["ANO_LETIVO_ATUAL","Ano letivo em andamento. Vazio = ano atual (dentro do contrato)",false,""],["STATUS_CONTRATO","Vigente (padrão), Encerrado ou Rescindido",false,"Vigente"],["DATA_ASSINATURA","Data de assinatura (dd/mm/aaaa)",false,""],["INICIO_VIGENCIA","Início da vigência (dd/mm/aaaa)",false,""],["FIM_VIGENCIA","Fim da vigência (dd/mm/aaaa)",false,""],["FORMA_COMERCIALIZACAO","Forma de comercialização",false,""],["PERCENTUAL_DESCONTO","Desconto (ex.: 10%)",false,""],["LINK_CONTRATO","Link do contrato assinado no Drive",false,""]]},"KITS":{"titulo":"Kits de clientes","descricao":"Uma linha por produto contratado. A escola precisa já existir no CRM (importe Clientes antes). Identifique a escola pelo CNPJ ou por NOME_ESCOLA + CIDADE.","colunas":[["CNPJ","CNPJ da escola (forma preferida de identificar)",false,"11.222.333/0001-44"],["NOME_ESCOLA","Nome da escola (se não usar CNPJ)",false,""],["CIDADE","Cidade da escola (se não usar CNPJ)",false,""],["NUMERO_CONTRATO","Número do contrato. Vazio = contrato vigente mais recente",false,"CT-2025-014"],["ANO_LETIVO","Ano letivo do kit",true,"2026"],["SEGMENTO","Segmento, como na aba LISTAS (SEGMENTO)",false,"Educação Infantil"],["FAIXA_ETARIA_ANO","Faixa etária ou ano escolar",false,"4 anos"],["PRODUTO_KIT","Nome do produto / kit",true,"Kit Infantil 4 anos"],["QUANTIDADE_PREVISTA","Quantidade prevista",false,""],["QUANTIDADE_CONTRATADA","Quantidade contratada",false,"40"],["VALOR_REFERENCIA","Valor unitário de referência em R$",false,"350,50"],["OBSERVACOES","Observações",false,""]]}};
+const XLSX_URL = window.CRM_XLSX_URL || 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+const COLS_DATA = ['DATA_ABERTURA', 'DATA_ENTRADA', 'DATA_ULTIMA_TENTATIVA', 'PROXIMA_TENTATIVA', 'DATA_ENCERRAMENTO', 'DATA_ASSINATURA', 'INICIO_VIGENCIA', 'FIM_VIGENCIA'];
+const COLS_VALOR = ['VALOR_REFERENCIA', 'QUANTIDADE_PREVISTA', 'QUANTIDADE_CONTRATADA'];
+let imp = null; // { tipo, arquivo, aba, linhas, ignoradas, previa, lote }
+function carregarXlsx() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  return new Promise((ok, falha) => { const s = document.createElement('script'); s.src = XLSX_URL; s.onload = () => ok(window.XLSX); s.onerror = () => falha(new Error('Não foi possível carregar o leitor de planilhas. Confira a internet.')); document.head.appendChild(s); });
+}
+const cabNorm = h => String(h || '').trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+function normValor(col, v) {
+  if (v === null || v === undefined) return '';
+  if (v instanceof Date) { if (isNaN(v)) return ''; return `${v.getFullYear()}-${pad(v.getMonth() + 1)}-${pad(v.getDate())}`; }
+  if (col === 'CNPJ' && typeof v === 'number') return String(Math.round(v)).padStart(14, '0');
+  if (col === 'PERCENTUAL_DESCONTO' && typeof v === 'number') return (v > 0 && v < 1 ? Math.round(v * 10000) / 100 : v) + '%';
+  let s = String(v).trim();
+  if (COLS_DATA.includes(col)) {
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+    if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; return `${y}-${pad(m[2])}-${pad(m[1])}`; }
+    m = s.match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return m[0];
+    return s; // o servidor recusa com mensagem clara
+  }
+  if (COLS_VALOR.includes(col) && typeof v === 'string') {
+    s = s.replace(/R\$\s*/i, '').replace(/\s/g, '');
+    if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) s = s.replace(/\./g, '').replace(',', '.');
+    else s = s.replace(',', '.');
+  }
+  return s;
+}
+function abrirImportacao(tipo) {
+  imp = { tipo: tipo || 'PROSPECCAO' };
+  telaImportacao();
+}
+function telaImportacao(erro = '') {
+  const def = IMPORT[imp.tipo];
+  let corpo = '';
+  if (!imp.previa) {
+    corpo = `<label class="field">O que você vai importar?<select id="imp-tipo">${Object.entries(IMPORT).map(([k, d]) => `<option value="${k}" ${k === imp.tipo ? 'selected' : ''}>${esc(d.titulo)}</option>`).join('')}</select></label>
+      <div class="notice">${esc(def.descricao)}<br>Colunas obrigatórias: <strong>${def.colunas.filter(c => c[2]).map(c => c[0]).join(', ')}</strong>${imp.tipo === 'KITS' ? ' e CNPJ (ou NOME_ESCOLA + CIDADE)' : ''}.<br>${btn('⬇ Baixar planilha-modelo', 'imp-modelo', 'text', 'type="button"')}</div>
+      <label class="field">Arquivo (.xlsx ou .csv)<input type="file" id="imp-arquivo" accept=".xlsx,.xls,.csv"></label>
+      <p class="visual-tip">Use a primeira linha para os títulos das colunas, exatamente como no modelo. Se o arquivo tiver várias abas, o sistema usa a aba com o nome ${esc(imp.tipo)} (ou a primeira aba).</p>
+      <p class="form-error" role="alert">${esc(erro)}</p><div class="form-actions">${btn('Cancelar', 'close-form', 'secondary', 'type="button"')}</div>`;
+  } else {
+    const r = imp.previa, cont = s => r.filter(x => x.status === s).length, okN = cont('ok');
+    const problemas = r.filter(x => x.status !== 'ok');
+    corpo = `<div class="notice"><strong>${esc(imp.arquivo)}</strong>${imp.aba ? ' · aba ' + esc(imp.aba) : ''} · ${r.length} linha(s) lida(s)${imp.ignoradas.length ? `<br>Colunas ignoradas (nome diferente do modelo): ${esc(imp.ignoradas.join(', '))}` : ''}</div>
+      <div class="permissions">${badge(okN + ' prontas para importar', 'teal')}${cont('duplicada') ? badge(cont('duplicada') + ' já existem (serão puladas)', 'orange') : ''}${cont('erro') ? badge(cont('erro') + ' com erro', 'red') : ''}</div>
+      ${problemas.length ? `<h3 style="margin-top:20px">Linhas que não serão importadas</h3><div class="table-wrap imp-table"><table><thead><tr><th>LINHA</th><th>ESCOLA / ITEM</th><th>MOTIVO</th></tr></thead><tbody>${problemas.map(x => `<tr><td>${x.linha}</td><td>${esc(x.nome)}</td><td>${badge(x.status === 'erro' ? 'Erro' : 'Já existe', x.status === 'erro' ? 'red' : 'orange')} ${esc(x.mensagem)}</td></tr>`).join('')}</tbody></table></div><p class="visual-tip">Você pode importar as linhas prontas agora e corrigir as outras depois, num novo arquivo: as que já entraram serão reconhecidas como “já existem”.</p>` : ''}
+      ${okN ? `<details style="margin-top:14px"><summary class="text-link">Ver as ${okN} linhas prontas</summary><div class="table-wrap imp-table"><table><tbody>${r.filter(x => x.status === 'ok').map(x => `<tr><td>${x.linha}</td><td>${esc(x.nome)}</td><td class="secondary-text">${esc(x.mensagem)}</td></tr>`).join('')}</tbody></table></div></details>` : ''}
+      <p class="form-error" role="alert">${esc(erro)}</p>
+      <div class="form-actions">${btn('Outro arquivo', 'imp-voltar', 'secondary', 'type="button"')}${okN ? btn(`Importar ${okN} ${okN === 1 ? 'linha' : 'linhas'}`, 'imp-confirmar', '', 'type="button" id="imp-confirmar"') : ''}</div>`;
+  }
+  $('form-content').innerHTML = `<div class="dialog-head"><h2 id="form-title">Importar · ${esc(def.titulo)}</h2><button type="button" class="icon-button" data-action="close-form" aria-label="Fechar">×</button></div><div class="form-body" id="imp-body">${corpo}</div>`;
+  if (!formDialog.open) formDialog.showModal();
+  const sel = $('imp-tipo'); if (sel) sel.onchange = () => { imp.tipo = sel.value; telaImportacao(); };
+  const arq = $('imp-arquivo'); if (arq) arq.onchange = () => arq.files[0] && lerArquivo(arq.files[0]);
+}
+async function lerArquivo(file) {
+  const corpo = $('imp-body'); corpo.insertAdjacentHTML('beforeend', '<p class="visual-tip" id="imp-status">Lendo o arquivo…</p>');
+  try {
+    const XLSX = await carregarXlsx();
+    const buf = await file.arrayBuffer();
+    let wb;
+    if (/\.csv$/i.test(file.name)) {
+      let txt; try { txt = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch { txt = new TextDecoder('windows-1252').decode(buf); } // Excel salva CSV em ANSI
+      wb = XLSX.read(txt.replace(/^\ufeff/, ''), { type: 'string', cellDates: true, raw: true });
+    } else wb = XLSX.read(buf, { type: 'array', cellDates: true });
+    const nome = wb.SheetNames.find(n => cabNorm(n) === imp.tipo) || wb.SheetNames.find(n => !/INSTRU/i.test(n)) || wb.SheetNames[0];
+    const matriz = XLSX.utils.sheet_to_json(wb.Sheets[nome], { header: 1, raw: true, defval: '' });
+    if (!matriz.length) throw new Error('A aba “' + nome + '” está vazia.');
+    const def = IMPORT[imp.tipo], conhecidas = def.colunas.map(c => c[0]);
+    const cab = matriz[0].map(cabNorm);
+    const faltam = def.colunas.filter(c => c[2] && !cab.includes(c[0])).map(c => c[0]);
+    if (imp.tipo === 'KITS' && !cab.includes('CNPJ') && !(cab.includes('NOME_ESCOLA') && cab.includes('CIDADE'))) faltam.push('CNPJ (ou NOME_ESCOLA + CIDADE)');
+    if (faltam.length) throw new Error('Faltam colunas obrigatórias na aba “' + nome + '”: ' + faltam.join(', ') + '. Confira se a primeira linha tem os títulos do modelo.');
+    const linhas = [];
+    matriz.slice(1).forEach((row, i) => {
+      const o = { _linha: i + 2 }; let algum = false;
+      cab.forEach((c, j) => { if (conhecidas.includes(c)) { const v = normValor(c, row[j]); if (v !== '') { o[c] = v; algum = true; } } });
+      if (algum) linhas.push(o);
+    });
+    if (!linhas.length) throw new Error('Nenhuma linha preenchida abaixo dos títulos.');
+    if (linhas.length > 2000) throw new Error('O arquivo tem ' + linhas.length + ' linhas. Divida em arquivos de até 2.000 linhas.');
+    imp.arquivo = file.name; imp.aba = wb.SheetNames.length > 1 ? nome : ''; imp.linhas = linhas;
+    imp.ignoradas = matriz[0].filter((h, j) => String(h).trim() && !conhecidas.includes(cab[j])).map(String);
+    imp.lote = 'IMP-' + hoje().replace(/-/g, '') + '-' + pad(new Date().getHours()) + pad(new Date().getMinutes()) + '-' + imp.tipo.slice(0, 3);
+    $('imp-status').textContent = `Conferindo ${linhas.length} linha(s) com a planilha do CRM…`;
+    imp.previa = [];
+    for (let i = 0; i < linhas.length; i += 200) {
+      const r = await api('importar', { tipo: imp.tipo, linhas: linhas.slice(i, i + 200), confirmar: false, lote: imp.lote });
+      imp.previa.push(...r.resultado);
+    }
+    telaImportacao();
+  } catch (err) { imp.previa = null; telaImportacao(err.message); }
+}
+async function confirmarImportacao() {
+  const okLinhas = new Set(imp.previa.filter(x => x.status === 'ok').map(x => x.linha));
+  const enviar = imp.linhas.filter(l => okLinhas.has(l._linha));
+  const b = $('imp-confirmar'); b.disabled = true;
+  document.querySelectorAll('#imp-body [data-action=imp-voltar],[data-action=close-form]').forEach(x => { x.disabled = true; });
+  setOcupado(true);
+  let gravadas = 0; const falhas = [];
+  try {
+    for (let i = 0; i < enviar.length; i += 100) {
+      b.textContent = `Gravando ${Math.min(i + 100, enviar.length)} de ${enviar.length}…`;
+      const r = await api('importar', { tipo: imp.tipo, linhas: enviar.slice(i, i + 100), confirmar: true, lote: imp.lote });
+      gravadas += r.gravadas; falhas.push(...r.resultado.filter(x => x.status !== 'ok'));
+    }
+  } catch (err) {
+    falhas.push({ linha: '—', nome: '', status: 'erro', mensagem: 'Interrompido: ' + err.message + ' As linhas já gravadas ficam no CRM; reenvie o arquivo para importar o restante.' });
+  } finally { setOcupado(false); }
+  await recarregar();
+  $('form-content').innerHTML = `<div class="dialog-head"><h2 id="form-title">Importação concluída</h2><button type="button" class="icon-button" data-action="close-form" aria-label="Fechar">×</button></div><div class="form-body"><div class="stat"><div class="stat-top">Linhas importadas</div><div class="stat-value">${gravadas}</div><div class="stat-note">Lote ${esc(imp.lote)} · registrado no histórico</div></div>${falhas.length ? `<h3 style="margin-top:20px">Não importadas nesta etapa</h3><div class="table-wrap imp-table"><table><tbody>${falhas.map(x => `<tr><td>${x.linha}</td><td>${esc(x.nome)}</td><td>${esc(x.mensagem)}</td></tr>`).join('')}</tbody></table></div>` : ''}<div class="form-actions">${btn('Importar outro arquivo', 'imp-novo', 'secondary', 'type="button"')}${btn('Concluir', 'close-form', '', 'type="button"')}</div></div>`;
+}
+async function baixarModelo() {
+  try {
+    const XLSX = await carregarXlsx(), wb = XLSX.utils.book_new();
+    const instr = [['CRM ALICERCES · MODELO DE IMPORTAÇÃO'], ['Preencha uma linha por escola (ou por kit, na aba KITS). Não altere os títulos da primeira linha. Datas no formato dd/mm/aaaa.'], ['Importe na ordem: PROSPECCAO e CLIENTES; depois KITS.'], [], ['ABA', 'COLUNA', 'OBRIGATÓRIA', 'O QUE PREENCHER', 'EXEMPLO']];
+    Object.entries(IMPORT).forEach(([k, d]) => d.colunas.forEach(c => instr.push([k, c[0], c[2] ? 'Sim' : '', c[1], c[3]])));
+    instr.push([], ['LISTAS ATUAIS DO CRM']); Object.entries(D.listas).forEach(([k, v]) => instr.push([k, v.join(' · ')]));
+    instr.push([], ['E-MAILS DA EQUIPE'], ...ativos().map(u => [u.NOME, u.EMAIL_GOOGLE]));
+    const wsI = XLSX.utils.aoa_to_sheet(instr); wsI['!cols'] = [{ wch: 26 }, { wch: 30 }, { wch: 12 }, { wch: 80 }, { wch: 40 }];
+    XLSX.utils.book_append_sheet(wb, wsI, 'INSTRUCOES');
+    Object.entries(IMPORT).forEach(([k, d]) => { const ws = XLSX.utils.aoa_to_sheet([d.colunas.map(c => c[0])]); ws['!cols'] = d.colunas.map(c => ({ wch: Math.max(14, c[0].length + 2) })); XLSX.utils.book_append_sheet(wb, ws, k); });
+    XLSX.writeFile(wb, 'modelo-importacao-crm-alicerces.xlsx');
+  } catch (err) { toast(err.message); }
+}
+
 /* ---------- Eventos ---------- */
 const achar = (tab, campo_, id) => T(tab).find(x => x[campo_] === id);
 addEventListener('click', async e => {
@@ -722,6 +855,11 @@ addEventListener('click', async e => {
       case 'edit-user': formUsuario(achar('USUARIOS', 'ID_USUARIO', ref)); break;
       case 'reset-pass': if (confirmar(b, 'Clique de novo para confirmar')) { const r = await api('resetarSenha', { idUsuario: ref }); toast(r.mensagem); } break;
       case 'export-csv': exportarCsv(); break;
+      case 'import': abrirImportacao(b.dataset.tipo); break;
+      case 'imp-modelo': baixarModelo(); break;
+      case 'imp-voltar': imp.previa = null; telaImportacao(); break;
+      case 'imp-novo': abrirImportacao(imp.tipo); break;
+      case 'imp-confirmar': await confirmarImportacao(); break;
     }
   } catch (err) { toast(err.message); }
 });
