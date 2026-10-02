@@ -2,8 +2,9 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Alicerces · CRM Editorial</title>
-  <meta name="description" content="Protótipo demonstrativo do CRM Alicerces: relacionamento com escolas do primeiro contato à renovação.">
+  <title>Alicerces · CRM</title>
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="description" content="CRM Alicerces: relacionamento com escolas do primeiro contato à renovação.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2350B0A7'/%3E%3Cpath d='M7 24 16 7 25 24M11 19h10' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E">
   <style>@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
 :root{--teal:#50B0A7;--teal-dark:#28766f;--orange:#F38932;--bg:#F4EFE8;--ink:#263b38;--muted:#75837d;--border:#e7e7df;--white:#fff;--soft:#eaf5f2;--radius:16px;--shadow:0 5px 25px #263b3805}
@@ -12,142 +13,761 @@
 @media(max-width:1180px){.sidebar{width:205px;padding:30px 16px}.shell{margin-left:205px}main{padding:28px}.topbar{padding:0 28px}.dashboard-grid{grid-template-columns:1fr}.section-grid{grid-template-columns:repeat(2,1fr)}.calendar-shell{grid-template-columns:1fr}.toast{left:calc(50% + 102px)}.stat{padding:18px}.stat-top{font-size:11px}}
 @media(max-width:760px){.sidebar{transform:translateX(-100%);transition:.2s;width:236px;box-shadow:20px 0 60px #0002}.sidebar.open{transform:translateX(0)}.shell{margin-left:0}.menu-button{display:block}.topbar{padding:0 18px;height:65px;gap:12px}.topbar>span{display:none}.top-actions{gap:12px;width:100%;justify-content:flex-end}.global-search input{width:140px}.date-label{display:none}main{padding:23px 18px}.page-heading{align-items:flex-start;flex-wrap:wrap;margin-bottom:22px}h1{font-size:25px}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stat{padding:16px}.stat-value{font-size:26px}.stat-top{font-size:10px}.panel{padding:18px}.section-grid,.detail-grid{grid-template-columns:1fr}.funnel-row{grid-template-columns:135px 1fr 20px;font-size:10px}.toolbar input{min-width:0;flex:1;width:150px}.toolbar .spacer{display:none}.toolbar select{max-width:170px}.kanban{grid-template-columns:repeat(4,235px)}.calendar-day{min-height:70px;padding:4px}.calendar-event{font-size:8px;padding:3px}.calendar .weekday{font-size:9px}.dialog-head,.dialog-body,.form-body{padding:20px}.detail-tabs{padding-left:12px;padding-right:12px}.info-list{gap:14px}.toast{left:50%;width:max-content;max-width:90vw}.task-row{gap:9px;flex-wrap:wrap}.task-row .task-text{min-width:180px}.task-row>.avatar{display:none}footer{padding:15px 18px;flex-direction:column;gap:8px}.form-row{grid-template-columns:1fr}.mini-kpi{gap:7px}.mini-kpi>div{padding:11px}.mini-kpi small{font-size:9px}.calendar-shell{gap:15px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* ---- Versão operacional: login, formulários e estados ---- */
+#auth{display:none}
+body.auth #auth{display:grid;place-items:center;min-height:100vh;padding:24px}
+body.auth .sidebar,body.auth .shell{display:none}
+.auth-card{background:#fffdf9;border:1px solid var(--border);border-radius:20px;padding:38px 34px;width:min(420px,100%);box-shadow:0 20px 60px #263b3812}
+.auth-card .brand{margin-bottom:30px}
+.auth-card h1{font-size:26px;margin-bottom:6px}
+.auth-card .subtitle{margin-bottom:24px}
+.auth-card .button{width:100%;justify-content:center;margin-top:6px}
+.auth-card .form-actions .button{width:auto}
+.form-error{color:#a53d35;font-size:12px;min-height:16px;margin:4px 0 10px;font-weight:600}
+.form-error:empty{min-height:0;margin:0}
+.check-field{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;margin:0 0 12px;cursor:pointer}
+.check-field input{width:16px;height:16px;accent-color:var(--teal)}
+fieldset.field.multi{border:1px solid #dce1d7;border-radius:8px;padding:10px 12px 2px}
+fieldset.field.multi legend{padding:0 4px}
+.form-dialog{width:min(640px,95vw)}
+.form-body h3{font-size:13px;margin:8px 0 14px;color:var(--teal-dark);letter-spacing:.3px}
+.form-row{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.kit-row{display:grid;grid-template-columns:1.1fr 1fr 1.3fr .7fr .8fr;gap:8px;border-bottom:1px dashed var(--border);margin-bottom:12px}
+.kit-row .field{margin-bottom:10px;font-size:10px}
+.kit-row .field input,.kit-row .field select{padding:8px}
+.checklist{list-style:none;padding:0;margin:14px 0;font-size:12px;line-height:2;color:var(--muted)}
+.checklist li.done{color:var(--teal-dark);font-weight:600}
+.text-link{color:var(--teal-dark);text-decoration:underline;text-underline-offset:2px;font-size:12px}
+.info-box{margin-bottom:18px}
+.info-box h4,.dialog-body h4{font-size:12px;margin:20px 0 10px;color:var(--teal-dark)}
+tr.inactive,.panel.inactive{opacity:.55}
+.danger{color:#a53d35!important}
+.sync{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sync::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--teal)}
+body.busy .sync::before{background:var(--orange);animation:pulse 1s infinite}
+body.busy{cursor:progress}
+@keyframes pulse{50%{opacity:.3}}
+.logout{background:none;color:var(--muted);font-size:11px;text-decoration:underline;padding:0;margin-top:10px;text-align:left}
+.sidebar-links{display:flex;flex-direction:column;align-items:flex-start}
+@media(max-width:760px){.kit-row{grid-template-columns:1fr 1fr}.auth-card{padding:28px 22px}}
+@media(prefers-reduced-motion:reduce){body.busy .sync::before{animation:none}}
+.auth-card .visual-tip{margin-top:16px;line-height:1.6}
+.form-body>p.subtitle{margin-bottom:18px}
+@media(max-width:760px){.toolbar input[type=search]{flex:1 1 100%;min-width:0}}
 </style>
-  
+  <script>
+    /* ===== ENDEREÇO DA API (link /exec do Apps Script) ===== */
+    window.CRM_API_URL = 'https://script.google.com/macros/s/AKfycbye0qosl9XWYkii5LBwfmPuY2Brviv4qIDnX6JgncPQ9py5EPuKWRTKW_f8cA389ztw/exec';
+  </script>
 </head>
-<body>
+<body class="auth">
+  <div id="auth"></div>
   <aside class="sidebar" id="sidebar">
     <a class="brand" href="#inicio" aria-label="Alicerces, início"><span class="brand-mark">a</span><span>alicerces<small>CRM EDITORIAL</small></span></a>
     <div class="workspace-label">RELACIONAMENTO COM ESCOLAS</div>
     <nav id="navigation" aria-label="Menu principal"></nav>
-    <div class="sidebar-bottom"><div class="demo-chip"><span></span> Ambiente demonstrativo</div><p>Da primeira conversa<br>à próxima conquista.</p><div class="profile"><span class="avatar">AF</span><div>Ana Flávia<small>Visão da equipe</small></div></div></div>
+    <div class="sidebar-bottom"><div class="demo-chip" id="env-chip"><span></span> Planilha</div><p>Da primeira conversa<br>à próxima conquista.</p><div class="profile" id="profile"></div><div class="sidebar-links"><button class="logout" data-action="change-pass">Alterar minha senha</button><button class="logout" data-action="logout">Sair</button></div></div>
   </aside>
   <div class="shell">
-    <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola…" aria-label="Buscar escola em todo o CRM"></label><span class="date-label">1 out. 2026</span><span class="avatar small">AF</span></div></header>
+    <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola…" aria-label="Buscar escola em todo o CRM"></label><button class="sync" data-action="refresh" id="sync-status" title="Atualizar dados da planilha" style="background:none">Dados da planilha</button><span class="date-label" id="date-label"></span><span class="avatar small" id="top-avatar"></span></div></header>
     <main id="main" tabindex="-1"></main>
-    <footer>ALICERCES · CRM EDITORIAL <span>Dados fictícios · alterações salvas apenas neste navegador</span></footer>
+    <footer>ALICERCES · CRM EDITORIAL <span>Dados gravados na planilha Google</span></footer>
   </div>
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-title"><div id="form-content"></div></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <noscript>Ative o JavaScript no navegador para usar o protótipo do CRM.</noscript>
-<script>/* Dados inteiramente fictícios. Nenhuma conexão externa de dados. */
-window.ALICERCES_DEMO = {
-  version: 1,
-  schools: [
-    {id:'e1',name:'Colégio Horizonte',city:'Campinas',uf:'SP',contact:'Mariana Costa',role:'Diretora pedagógica',email:'mariana@example.com',phone:'(19) 99999-0101',owner:'Ana Flávia',stage:0,students:420,segments:'Educação Infantil e Ensino Fundamental I',source:'Landing page',interest:'Material de alfabetização e formação docente',attempts:2,last:'2026-09-29',next:'2026-10-02',priority:'Alta',notes:'Busca uma proposta que conecte leitura, escrita e práticas de sala de aula.',activities:[{date:'2026-09-29',type:'WhatsApp',text:'Diretora pediu apresentação da coleção para o próximo ano.',author:'Ana Flávia'},{date:'2026-09-25',type:'Ligação',text:'Primeiro contato com a secretaria. Retorno combinado.',author:'Ana Flávia'}],meetings:[],checklist:[false,false,false,false],pedagogic:[],contracts:[]},
-    {id:'e2',name:'Escola Raízes do Saber',city:'Ribeirão Preto',uf:'SP',contact:'Beatriz Almeida',role:'Coordenadora pedagógica',email:'beatriz@example.com',phone:'(16) 99999-0102',owner:'Camila Torres',stage:0,students:180,segments:'Educação Infantil',source:'Indicação',interest:'Formação da equipe e literatura infantil',attempts:5,last:'2026-09-30',next:'2026-10-05',priority:'Normal',notes:'Equipe com 12 professoras. Avalia materiais para a Educação Infantil.',activities:[{date:'2026-09-30',type:'E-mail',text:'Enviada proposta de horário para conversa inicial.',author:'Camila Torres'}],meetings:[],checklist:[false,false,false,false],pedagogic:[],contracts:[]},
-    {id:'e3',name:'Instituto Caminhos',city:'Belo Horizonte',uf:'MG',contact:'Rafael Mendes',role:'Coordenador pedagógico',email:'rafael@example.com',phone:'(31) 99999-0103',owner:'Camila Torres',stage:1,students:310,segments:'Ensino Fundamental I',source:'Landing page',interest:'Alfabetização e acompanhamento pedagógico',attempts:3,last:'2026-09-28',next:'2026-10-01',priority:'Alta',notes:'Quer conhecer a metodologia e o planejamento anual.',activities:[{date:'2026-09-28',type:'Ligação',text:'Reunião pedagógica confirmada com a coordenação.',author:'Camila Torres'}],meetings:[{id:'m1',type:'Pedagógica',date:'2026-10-01',time:'09:00',duration:60,status:'Agendada',notes:'Apresentar a proposta de alfabetização e ouvir a equipe.',owner:'Camila Torres'}],checklist:[false,false,false,false],pedagogic:[],contracts:[]},
-    {id:'e4',name:'Colégio Vila Verde',city:'Curitiba',uf:'PR',contact:'Renata Silva',role:'Diretora',email:'renata@example.com',phone:'(41) 99999-0104',owner:'Ana Flávia',stage:1,students:250,segments:'Educação Infantil e Ensino Fundamental I',source:'Evento',interest:'Coleção completa para 2027',attempts:2,last:'2026-09-30',next:'2026-10-06',priority:'Normal',notes:'A direção quer envolver os professores na escolha do material.',activities:[],meetings:[],checklist:[false,false,false,false],pedagogic:[],contracts:[]},
-    {id:'e5',name:'Escola Pequenos Passos',city:'São Paulo',uf:'SP',contact:'Juliana Rocha',role:'Mantenedora',email:'juliana@example.com',phone:'(11) 99999-0105',owner:'Lucas Ferreira',stage:2,students:160,segments:'Educação Infantil',source:'Indicação',interest:'Kits para 160 alunos e formação inicial',attempts:4,last:'2026-09-29',next:'2026-10-01',priority:'Alta',value:38400,notes:'Apresentação pedagógica concluída. Avaliar condições de contratação.',activities:[{date:'2026-09-29',type:'Reunião pedagógica',text:'Equipe aprovou a abordagem. Solicitou proposta comercial.',author:'Camila Torres'}],meetings:[{id:'m2',type:'Comercial',date:'2026-10-01',time:'14:00',duration:45,status:'Agendada',notes:'Negociar cronograma, kits e condições de pagamento.',owner:'Lucas Ferreira'}],checklist:[false,false,false,false],pedagogic:[],contracts:[]},
-    {id:'e6',name:'Colégio Nova Aurora',city:'Santos',uf:'SP',contact:'Pedro Azevedo',role:'Diretor administrativo',email:'pedro@example.com',phone:'(13) 99999-0106',owner:'Lucas Ferreira',stage:3,students:380,segments:'Ensino Fundamental I',source:'Landing page',interest:'Coleção para 2027 e assessoria pedagógica',attempts:6,last:'2026-09-30',next:'2026-10-02',priority:'Alta',value:91200,notes:'Proposta enviada. Comitê de decisão se reúne nesta semana.',activities:[{date:'2026-09-30',type:'E-mail',text:'Proposta comercial enviada à direção.',author:'Lucas Ferreira'}],meetings:[],checklist:[false,false,false,false],pedagogic:[],contracts:[]},
-    {id:'e7',name:'Escola Girassol',city:'Sorocaba',uf:'SP',contact:'Fernanda Lima',role:'Diretora',email:'fernanda@example.com',phone:'(15) 99999-0107',owner:'Ana Flávia',stage:4,students:220,segments:'Educação Infantil e Ensino Fundamental I',source:'Indicação',interest:'Coleção Alicerces e formação continuada',attempts:3,last:'2026-09-30',next:'2026-10-01',priority:'Normal',notes:'Escola parceira desde 2025. Equipe engajada na implementação.',activities:[{date:'2026-09-30',type:'Acompanhamento',text:'Coordenação compartilhou registros de leitura das turmas.',author:'Camila Torres'}],meetings:[{id:'m3',type:'Acompanhamento',date:'2026-10-01',time:'16:00',duration:60,status:'Agendada',notes:'Acompanhar os projetos de leitura do segundo semestre.',owner:'Camila Torres'}],checklist:[true,true,true,false],pedagogic:[{date:'2026-09-30',text:'Turmas avançaram nas práticas de leitura. Próxima formação: produção de texto.',author:'Camila Torres'}],contracts:[{id:'c1',year:2026,value:52800,kits:220,status:'Ativo',signed:'2025-11-20',renewal:'2026-11-15',renewalStatus:'A iniciar'}]},
-    {id:'e8',name:'Colégio Semente',city:'São José dos Campos',uf:'SP',contact:'Carolina Nunes',role:'Coordenadora',email:'carolina@example.com',phone:'(12) 99999-0108',owner:'Camila Torres',stage:4,students:145,segments:'Educação Infantil',source:'Evento',interest:'Literatura infantil e formação docente',attempts:2,last:'2026-09-25',next:'2026-10-08',priority:'Normal',notes:'Implantação concluída. Renovação em negociação para 2027.',activities:[],meetings:[],checklist:[true,true,true,true],pedagogic:[{date:'2026-09-25',text:'Formação concluída com 9 professoras. Planejamento revisado.',author:'Camila Torres'}],contracts:[{id:'c2',year:2026,value:34800,kits:145,status:'Ativo',signed:'2025-12-02',renewal:'2026-10-20',renewalStatus:'Em negociação'}]},
-    {id:'e9',name:'Escola Estação Aprender',city:'Niterói',uf:'RJ',contact:'Andréa Martins',role:'Diretora',email:'andrea@example.com',phone:'(21) 99999-0109',owner:'Ana Flávia',stage:4,students:290,segments:'Ensino Fundamental I',source:'Landing page',interest:'Kits para o ano letivo de 2027',attempts:4,last:'2026-09-28',next:'2026-10-07',priority:'Normal',notes:'Nova parceria. Implantação em andamento.',activities:[],meetings:[],checklist:[true,false,false,false],pedagogic:[],contracts:[{id:'c3',year:2027,value:69600,kits:290,status:'Assinado',signed:'2026-09-28',renewal:'2027-10-20',renewalStatus:'A iniciar'}]}
-  ],
-  tasks:[{id:'t1',schoolId:'e6',title:'Confirmar retorno sobre a proposta',due:'2026-10-02',owner:'Lucas Ferreira',priority:'Alta',done:false},{id:'t2',schoolId:'e3',title:'Preparar apresentação pedagógica',due:'2026-10-01',owner:'Camila Torres',priority:'Alta',done:false},{id:'t3',schoolId:'e9',title:'Agendar reunião de implantação',due:'2026-10-07',owner:'Ana Flávia',priority:'Normal',done:false},{id:'t4',schoolId:'e8',title:'Enviar condições de renovação 2027',due:'2026-09-30',owner:'Lucas Ferreira',priority:'Alta',done:false},{id:'t5',schoolId:'e7',title:'Compartilhar registros da formação',due:'2026-10-01',owner:'Camila Torres',priority:'Normal',done:true}],
-  demands:[{id:'d1',schoolId:'e7',title:'Ajustar cronograma de formação',text:'A escola solicitou uma formação extra sobre produção de texto.',owner:'Camila Torres',status:'Em andamento',priority:'Normal',date:'2026-09-30',comments:[{text:'@Camila Torres, podemos avaliar uma data para novembro?',author:'Ana Flávia',date:'2026-09-30',mentions:['Camila Torres']}]},{id:'d2',schoolId:'e9',title:'Conferir distribuição dos kits',text:'Validar a quantidade por turma antes da entrega.',owner:'Lucas Ferreira',status:'Aberta',priority:'Alta',date:'2026-09-29',comments:[]}],
-  users:[{id:'u1',name:'Ana Flávia',initials:'AF',role:'Gestão e relacionamento',email:'ana@example.com',permissions:['Gestão','Prospecção','Clientes','Demandas']},{id:'u2',name:'Camila Torres',initials:'CT',role:'Assessoria pedagógica',email:'camila@example.com',permissions:['Pedagógico','Reuniões','Implantação','Demandas']},{id:'u3',name:'Lucas Ferreira',initials:'LF',role:'Consultoria comercial',email:'lucas@example.com',permissions:['Comercial','Contratos','Renovação','Prospecção']}]
-};
-</script>
-<script>'use strict';
+  <noscript>Ative o JavaScript no navegador para usar o CRM.</noscript>
+  <script>'use strict';
 (() => {
-const KEY='alicerces-crm-demo-v1', TODAY='2026-10-01';
-const stages=['Contato inicial','Apresentação pedagógica','Apresentação comercial','Decisão','Cliente','Não avançou'];
-const tabs=['Visão geral','Contatos','Reuniões','Comercial','Contratos','Implantação','Pedagógico','Histórico'];
-const checklist=['Reunião de boas-vindas','Conferência e entrega dos kits','Formação inicial da equipe','Acompanhamento dos primeiros 30 dias'];
-const nav=[['inicio','Início','home'],['prospeccao','Prospecção','columns'],['clientes','Clientes','building'],['agenda','Agenda','calendar'],['tarefas','Tarefas','check'],['demandas','Demandas','message'],['equipe','Equipe','users'],['relatorios','Relatórios','chart'],['configuracoes','Configurações','settings']];
-const paths={home:'M3 10 12 3l9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10 M9 21v-8h6v8',columns:'M3 4h18v16H3z M9 4v16 M15 4v16',building:'M5 21V3h14v18 M3 21h18 M9 7h1 M14 7h1 M9 11h1 M14 11h1 M10 21v-6h4v6',calendar:'M3 5h18v16H3z M7 3v4 M17 3v4 M3 10h18 M7 14h2 M13 14h2 M7 18h2',check:'M4 4h16v16H4z M8 12l3 3 5-6',message:'M3 4h18v14H8l-5 3V4 M7 8h10 M7 12h7',users:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M17 4a4 4 0 0 1 0 8 M22 21v-2a4 4 0 0 0-3-4',chart:'M4 3v18h18 M8 17v-5 M13 17V7 M18 17v-8',settings:'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z',arrow:'M4 12h16 M14 6l6 6-6 6',clock:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18 M12 7v5l3 2'};
-const icon=(n)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[n]||paths.building}"/></svg>`;
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const money=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
-const date=v=>v?new Date(v+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
-const shortDate=v=>v?new Date(v+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}):'Sem data';
-const initials=v=>v.split(' ').filter(Boolean).map(s=>s[0]).slice(0,2).join('');
-const clone=v=>JSON.parse(JSON.stringify(v));
-let db=clone(window.ALICERCES_DEMO), storageWarning=false;
-try{const raw=localStorage.getItem(KEY);if(raw){const saved=JSON.parse(raw);if(validImport(saved))db=saved;}}catch{storageWarning=true;}
-let page='inicio',view='kanban',query='',owner='',statusFilter='',detailId=null,detailTab=0,month=9,year=2026,dragId=null;
-const main=document.getElementById('main'), detail=document.getElementById('detail-dialog'), formDialog=document.getElementById('form-dialog');
-const school=id=>db.schools.find(s=>s.id===id), leads=()=>db.schools.filter(s=>s.stage<4), clients=()=>db.schools.filter(s=>s.stage===4);
-const allEvents=()=>db.schools.flatMap(s=>s.meetings.map(m=>({...m,schoolId:s.id,school:s.name}))).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
-const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-function toast(text){const t=document.getElementById('toast');t.textContent=text;t.classList.add('visible');clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.classList.remove('visible'),4200);}
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(db));}catch{toast('Alterações mantidas nesta sessão. O navegador bloqueou o salvamento local.');}render();if(detail.open)renderDetail();}
-function log(s,type,text){s.activities.unshift({date:TODAY,type,text,author:'Ana Flávia'});s.last=TODAY;}
-function badge(text,color='teal'){return `<span class="pill ${color}">${esc(text)}</span>`;}
-function heading(kicker,title,sub,action=''){return `<div class="page-heading"><div><div class="eyebrow">${kicker}</div><h1>${title}</h1><p class="subtitle">${sub}</p></div><div class="heading-actions">${action}</div></div>`;}
-function btn(text,action,kind='',extra=''){return `<button class="button ${kind}" data-action="${action}" ${extra}>${text}</button>`;}
-function schoolButton(s){return `<button class="school-link" data-action="open-school" data-id="${esc(s.id)}">${esc(s.name)}</button>`;}
-function schoolCell(s){return `<div class="school-cell"><span class="school-icon">${initials(s.name)}</span><div>${schoolButton(s)}<span class="secondary-text">${esc(s.city)} · ${esc(s.uf)}</span></div></div>`;}
-function userOptions(selected=''){return db.users.map(u=>`<option ${selected===u.name?'selected':''}>${esc(u.name)}</option>`).join('');}
-function schoolOptions(selected=''){return db.schools.filter(s=>s.stage!==5).map(s=>`<option value="${s.id}" ${s.id===selected?'selected':''}>${esc(s.name)}</option>`).join('');}
-function field(label,name,type='text',value='',required=true){return `<label class="field">${label}<input type="${type}" name="${name}" value="${esc(value)}" ${required?'required':''}></label>`;}
-function selectField(label,name,options){return `<label class="field">${label}<select name="${name}">${options}</select></label>`;}
-function textField(label,name,value='',required=true){return `<label class="field">${label}<textarea name="${name}" ${required?'required':''} maxlength="3000">${esc(value)}</textarea></label>`;}
-function setPage(p){page=nav.some(n=>n[0]===p)?p:'inicio';query='';owner='';statusFilter='';document.getElementById('global-search').value='';location.hash=page;render();document.getElementById('sidebar').classList.remove('open');}
-function render(){document.getElementById('navigation').innerHTML=nav.map(([id,label,i])=>`<a href="#${id}" class="nav-link ${page===id?'active':''}" ${page===id?'aria-current="page"':''}>${icon(i)}<span>${label}</span>${id==='tarefas'?`<span class="count">${db.tasks.filter(t=>!t.done).length}</span>`:''}</a>`).join('');document.getElementById('breadcrumb').textContent=page==='inicio'?'Visão geral':nav.find(n=>n[0]===page)[1];main.innerHTML=({inicio:dashboard,prospeccao:prospecting,clientes:clientPage,agenda:agendaPage,tarefas:tasksPage,demandas:demandsPage,equipe:teamPage,relatorios:reportsPage,configuracoes:settingsPage}[page])();}
-function dashboard(){const events=allEvents().filter(e=>e.date===TODAY&&e.status!=='Cancelada'), pending=db.tasks.filter(t=>!t.done),overdue=pending.filter(t=>t.due<TODAY), renew=clients().filter(s=>s.contracts.some(c=>c.renewal<='2026-11-30'&&c.renewalStatus!=='Renovada'));
-return heading('CADA ESCOLA, UMA HISTÓRIA','Bom dia, Ana Flávia ☀','Vamos cuidar das conexões que fazem a educação acontecer.',btn('+ Nova escola','new-school'))+`<section class="stats" aria-label="Indicadores">${[[leads().length,'Escolas em prospecção','columns','Distribuídas em quatro etapas'],[clients().length,'Escolas parceiras','building','Relacionamentos em construção'],[pending.length,'Tarefas em aberto','check',`${overdue.length} com prazo vencido`],[events.length,'Reuniões hoje','calendar','Pedagógicas, comerciais e acompanhamento']].map(([v,l,i,n])=>`<div class="stat"><div class="stat-top">${l}<span class="stat-icon">${icon(i)}</span></div><div class="stat-value">${v.toString().padStart(2,'0')}</div><div class="stat-note">${n}</div></div>`).join('')}</section><div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>Um olhar para o funil</h2>${btn('Ver prospecção ↗','nav-prospeccao','text')}</div><div class="funnel">${stages.slice(0,4).map((st,i)=>{const count=leads().filter(s=>s.stage===i).length;return `<div class="funnel-row"><span>${st}</span><div class="bar-track"><div class="bar-fill" style="width:${count/(Math.max(...[0,1,2,3].map(j=>leads().filter(s=>s.stage===j).length))||1)*100}%"></div></div><strong>${count.toString().padStart(2,'0')}</strong></div>`;}).join('')}</div><div class="panel-foot"><span>${leads().length} oportunidades em movimento</span><span>Carteira potencial: <strong>${money(leads().reduce((a,s)=>a+(s.value||0),0))}</strong></span></div></section><section class="panel"><div class="panel-head"><h2>Na agenda de hoje</h2>${badge('Quinta, 01 out.','orange')}</div>${events.length?events.map(eventRow).join(''):'<div class="empty">Hoje está livre para novas conversas.</div>'}${btn('Abrir agenda completa →','nav-agenda','text')}</section><section class="panel"><div class="panel-head"><h2>Próximas conversas</h2>${btn('Ver todas ↗','nav-prospeccao','text')}</div><div class="table-wrap"><table><thead><tr><th>ESCOLA</th><th>ETAPA</th><th>PRÓXIMA ATIVIDADE</th></tr></thead><tbody>${leads().sort((a,b)=>(a.next||'9999').localeCompare(b.next||'9999')).slice(0,4).map(s=>`<tr><td>${schoolCell(s)}</td><td>${badge(stages[s.stage],s.stage===3?'orange':'teal')}</td><td>${shortDate(s.next)}</td></tr>`).join('')}</tbody></table></div></section><section class="panel"><div class="panel-head"><h2>Precisa da sua atenção</h2>${badge(`${overdue.length+renew.length} pontos`,'orange')}</div>${overdue.map(t=>`<div class="agenda-item"><span class="event-line"></span><div><h3>${esc(t.title)}</h3><p>${esc(school(t.schoolId)?.name||'Geral')} · prazo ${date(t.due)}</p></div></div>`).join('')}${renew.map(s=>`<div class="agenda-item"><span class="event-line"></span><div><h3>Renovação · ${schoolButton(s)}</h3><p>Uma oportunidade para planejar o próximo ano.</p></div></div>`).join('')}<div class="reminder">${icon('message')}<p>Pequenos retornos constroem grandes parcerias.<br>Reserve um momento para as escolas que aguardam você.</p></div></section></div>`;}
-function eventRow(e){return `<div class="agenda-item"><span class="time">${esc(e.time)}</span><span class="event-line"></span><div><h3>${schoolButton(school(e.schoolId))}</h3><p>${esc(e.owner)} · ${e.duration} min</p>${badge(e.type,e.type==='Comercial'?'orange':'teal')}</div></div>`;}
-function filteredSchools(list){return list.filter(s=>(!query||[s.name,s.city,s.contact,s.uf].some(v=>v.toLowerCase().includes(query.toLowerCase())))&&(!owner||s.owner===owner));}
-function filterBar(showView=false){return `<div class="toolbar"><input id="page-search" type="search" value="${esc(query)}" placeholder="Buscar escola, cidade ou contato" aria-label="Filtrar escolas"><select id="owner-filter" aria-label="Filtrar por responsável"><option value="">Toda a equipe</option>${userOptions(owner)}</select><span class="spacer"></span>${showView?`<select id="stage-filter" aria-label="Filtrar etapa"><option value="">Todas as etapas</option><option value="all" ${statusFilter==='all'?'selected':''}>Todas as escolas</option>${stages.map((st,i)=>`<option value="${i}" ${statusFilter===String(i)?'selected':''}>${st}</option>`).join('')}</select><div class="segmented" aria-label="Visualização"><button data-action="view-kanban" class="${view==='kanban'?'active':''}" aria-pressed="${view==='kanban'}">▥ Kanban</button><button data-action="view-list" class="${view==='list'?'active':''}" aria-pressed="${view==='list'}">☰ Lista</button></div>`:''}</div>`;}
-function prospecting(){const filtered=filteredSchools(db.schools.filter(s=>statusFilter==='all'?true:statusFilter==='all'?true:statusFilter==='all'?true:statusFilter!==''?s.stage===Number(statusFilter):s.stage<4)),rows=view==='list'||Number(statusFilter)>=4;
-return heading('DO PRIMEIRO OLÁ À PARCERIA','Prospecção','Acompanhe cada conversa e transforme interesse em conexão.',btn('+ Nova escola','new-school'))+filterBar(true)+(rows?`<section class="panel table-wrap"><table><thead><tr><th>ESCOLA</th><th>ETAPA</th><th>RESPONSÁVEL</th><th>TENTATIVAS</th><th>ÚLTIMA ATIVIDADE</th><th>PRÓXIMA</th></tr></thead><tbody>${filtered.map(s=>`<tr><td>${schoolCell(s)}</td><td>${badge(stages[s.stage])}</td><td>${esc(s.owner)}</td><td>${s.attempts} / 7</td><td>${shortDate(s.last)}</td><td>${shortDate(s.next)}</td></tr>`).join('')}</tbody></table>${!filtered.length?'<p class="empty">Nenhuma escola encontrada para estes filtros.</p>':''}</section>`:`<p class="visual-tip">Arraste os cards entre etapas ou altere a etapa na ficha da escola.</p><div class="kanban">${stages.slice(0,4).map((st,i)=>`<section class="kanban-column" data-stage="${i}"><div class="kanban-heading"><span><i class="stage-dot"></i>${st}</span>${badge(filtered.filter(s=>s.stage===i).length,'')}</div>${filtered.filter(s=>s.stage===i).map(leadCard).join('')}${!filtered.some(s=>s.stage===i)?'<div class="empty">Novas conversas<br>podem chegar aqui.</div>':''}</section>`).join('')}</div>`);}
-function leadCard(s){return `<article class="lead-card" draggable="true" data-id="${s.id}"><div class="card-head"><div><h3>${schoolButton(s)}</h3><p class="location">${esc(s.city)} · ${esc(s.uf)}</p></div>${s.priority==='Alta'?badge('Prioridade','orange'):''}</div>${badge(s.source,'')}<div class="card-info"><strong>${esc(s.contact)}</strong><br>${esc(s.role)}</div><div class="attempts" aria-label="${s.attempts} de 7 tentativas">${Array.from({length:7},(_,i)=>`<i class="${i<s.attempts?'filled':''}"></i>`).join('')}</div><div class="card-info">${s.attempts}/7 tentativas · última: ${shortDate(s.last)}<br>Próxima atividade: <strong>${shortDate(s.next)}</strong></div><div class="card-bottom"><span style="display:flex;align-items:center;gap:7px"><span class="avatar small">${initials(s.owner)}</span>${esc(s.owner.split(' ')[0])}</span>${btn('Abrir →','open-school','text',`data-id="${s.id}"`)}</div></article>`;}
-function clientPage(){const list=filteredSchools(clients());return heading('PARCERIAS QUE CONTINUAM','Clientes','Uma visão completa de cada escola, do contrato à renovação.')+filterBar()+`<div class="section-grid">${list.map(s=>{const n=s.checklist.filter(Boolean).length,c=s.contracts.at(-1);return `<article class="panel client-card"><span class="school-icon">${initials(s.name)}</span><h2>${schoolButton(s)}</h2><p>${esc(s.city)} · ${esc(s.uf)} · ${s.students} alunos</p><div class="client-meta">${badge(c?.status||'A contratar')}${badge(`Ano letivo ${c?.year||'—'}`,'orange')}</div><div class="card-info">Responsável: <strong>${esc(s.owner)}</strong><br>Contato: <strong>${esc(s.contact)}</strong></div><small>Implantação <strong>${n}/4</strong></small><div class="progress"><span style="width:${n*25}%"></span></div><small>${c?'Renovação: '+date(c.renewal):'Contrato ainda não registrado'}</small><div class="client-footer"><span>${money(c?.value)}</span>${btn('Cliente 360° →','open-school','text',`data-id="${s.id}"`)}</div></article>`;}).join('')}</div>${!list.length?'<div class="empty">Nenhum cliente encontrado.</div>':''}`;}
-function openSchool(id,tab=0){if(!school(id))return;detailId=id;detailTab=tab;renderDetail();if(!detail.open)detail.showModal();}
-function renderDetail(){const s=school(detailId);if(!s)return;document.getElementById('detail-content').innerHTML=`<div class="dialog-head"><div><div class="eyebrow">${s.stage===4?'CLIENTE 360°':'FICHA DA ESCOLA'}</div><h2 id="detail-title">${esc(s.name)}</h2><p>${esc(s.city)} · ${esc(s.uf)} · ${esc(s.owner)}</p><div class="detail-summary">${badge(stages[s.stage],s.stage===3?'orange':'teal')}${badge(`${s.students} alunos`,'')}${badge(s.segments,'')}</div></div><button class="icon-button" data-action="close-detail" aria-label="Fechar ficha">×</button></div><div class="detail-tabs" role="tablist" aria-label="Seções da ficha">${tabs.map((t,i)=>`<button role="tab" id="tab-${i}" aria-selected="${detailTab===i}" aria-controls="detail-panel" tabindex="${detailTab===i?0:-1}" data-action="detail-tab" data-tab="${i}" class="${detailTab===i?'active':''}">${t}</button>`).join('')}</div><div class="dialog-body" role="tabpanel" id="detail-panel" aria-labelledby="tab-${detailTab}">${detailBody(s)}</div>`;}
-function detailBody(s){switch(detailTab){case 0:return `<div class="detail-grid"><section class="info-box"><h3>Informações da escola</h3><dl class="info-list"><div><dt>Contato principal</dt><dd>${esc(s.contact)}<br>${esc(s.role)}</dd></div><div><dt>E-mail / telefone</dt><dd>${esc(s.email)}<br>${esc(s.phone)}</dd></div><div><dt>Segmentos</dt><dd>${esc(s.segments)}</dd></div><div><dt>Quantidade de alunos</dt><dd>${s.students}</dd></div></dl></section><section class="info-box"><h3>Informações de entrada</h3><dl class="info-list"><div><dt>Origem</dt><dd>${esc(s.source)}</dd></div><div><dt>Responsável</dt><dd>${esc(s.owner)}</dd></div><div><dt>Interesse informado</dt><dd>${esc(s.interest)}</dd></div><div><dt>Próxima atividade</dt><dd>${date(s.next)}</dd></div></dl></section></div><div class="detail-note">${esc(s.notes||'Adicione as observações desta escola.')}</div><div class="inline-actions">${btn('Editar escola','edit-school','secondary')}${s.stage<4?btn('Mover etapa','move-stage','secondary'):''}${btn('Criar tarefa','new-task','secondary',`data-id="${s.id}"`)}</div>${s.stage===5?`<div class="detail-note">Motivo: ${esc(s.lostReason||'Não informado')}${btn('Reabrir oportunidade','reopen','text')}</div>`:''}`;
-case 1:return `<div class="panel-head"><div><h2>Tentativas de contato</h2><p class="subtitle">Até sete tentativas, com canal, data e resultado.</p></div>${badge(`${s.attempts} / 7`,s.attempts===7?'orange':'teal')}</div><div class="attempts">${Array.from({length:7},(_,i)=>`<i class="${i<s.attempts?'filled':''}" style="width:36px;height:8px"></i>`).join('')}</div>${s.attempts>=7?'<div class="notice">As sete tentativas foram registradas. Avalie a próxima etapa ou registre o motivo para não avançar.</div>':''}<p class="subtitle">O contador inclui tentativas anteriores ao início deste protótipo; os registros disponíveis aparecem abaixo.</p><div class="inline-actions">${btn('+ Registrar tentativa','new-contact','',s.attempts>=7?'disabled':'')}${btn('Agendar próxima atividade','next-activity','secondary')}${s.stage<4?btn('Não avançou','lost','secondary'):''}</div>${timeline(s.activities.filter(a=>['Ligação','WhatsApp','E-mail','Contato'].includes(a.type)))}`;
-case 2:return `<div class="panel-head"><h2>Reuniões da escola</h2>${btn('+ Agendar reunião','new-meeting','',`data-id="${s.id}"`)}</div>${s.meetings.length?s.meetings.map(m=>`<div class="info-box" style="margin-bottom:15px"><div class="panel-head"><h3>${esc(m.type)} · ${date(m.date)} às ${esc(m.time)}</h3>${badge(m.status,m.status==='Cancelada'?'red':'teal')}</div><p class="subtitle">${esc(m.owner)} · ${m.duration} minutos</p><p class="subtitle">${esc(m.notes)}</p><div class="inline-actions">${btn('Editar / registrar resultado','edit-meeting','secondary',`data-meeting="${m.id}"`)}${m.status==='Agendada'?btn('Concluir reunião','complete-meeting','secondary',`data-meeting="${m.id}"`):''}${m.status!=='Cancelada'?btn('Google Calendar ↗','calendar-link','secondary',`data-meeting="${m.id}" data-id="${s.id}"`):''}${m.status==='Agendada'?btn('Cancelar','cancel-meeting','text',`data-meeting="${m.id}"`):''}</div></div>`).join(''):'<div class="empty">Ainda não há reuniões. Agende a conversa pedagógica ou comercial.</div>'}`;
-case 3:return `<section class="info-box"><h3>Proposta e decisão</h3><dl class="info-list"><div><dt>Valor proposto</dt><dd>${money(s.value)}</dd></div><div><dt>Etapa atual</dt><dd>${stages[s.stage]}</dd></div><div><dt>Interesse</dt><dd>${esc(s.interest)}</dd></div><div><dt>Condições da proposta</dt><dd>${esc(s.proposal||'Ainda não registradas')}</dd></div></dl></section><div class="inline-actions">${btn('Editar proposta','edit-proposal','secondary')}${s.stage<4?btn('Mover etapa','move-stage','secondary'):''}${s.stage<4?btn('Registrar contratação','new-contract'):''}${s.stage<4?btn('Registrar não avanço','lost','secondary'):''}</div><div class="detail-note">A contratação transforma a escola em cliente e inicia o acompanhamento do contrato, dos kits e da implantação.</div>`;
-case 4:return `<div class="panel-head"><h2>Contratos e anos letivos</h2>${btn('+ Registrar contrato','new-contract')}</div>${s.contracts.map(c=>`<section class="info-box" style="margin-bottom:16px"><div class="panel-head"><h3>Ano letivo ${c.year}</h3>${badge(c.status)}</div><dl class="info-list"><div><dt>Valor contratado</dt><dd>${money(c.value)}</dd></div><div><dt>Kits contratados</dt><dd>${c.kits} kits · ${esc(c.kitDescription||'Coleção Alicerces')}</dd></div><div><dt>Assinatura</dt><dd>${date(c.signed)}</dd></div><div><dt>Renovação</dt><dd>${date(c.renewal)} · ${esc(c.renewalStatus)}</dd></div></dl><div class="inline-actions">${btn('Editar contrato','edit-contract','secondary',`data-contract="${c.id}"`)}${btn('Atualizar renovação','renew-contract','secondary',`data-contract="${c.id}"`)}</div></section>`).join('')||'<div class="empty">Nenhum contrato registrado para esta escola.</div>'}`;
-case 5:return `<h2>Implantação e onboarding</h2><p class="subtitle">Do início da parceria aos primeiros passos em sala de aula.</p><div class="progress"><span style="width:${s.checklist.filter(Boolean).length*25}%"></span></div><p class="subtitle">${s.checklist.filter(Boolean).length} de 4 etapas concluídas</p>${checklist.map((v,i)=>`<label class="check-row"><input type="checkbox" data-checklist="${i}" ${s.checklist[i]?'checked':''} ${s.stage!==4?'disabled':''}>${v}</label>`).join('')}${s.stage!==4?'<div class="notice" style="margin-top:20px">As etapas de implantação serão habilitadas após registrar a contratação.</div>':`<div class="inline-actions">${btn('Agendar implantação','new-meeting','secondary',`data-id="${s.id}" data-type="Implantação"`)}${btn('Criar demanda interna','new-demand','secondary',`data-id="${s.id}"`)}</div>`}`;
-case 6:return `<div class="panel-head"><div><h2>Acompanhamento pedagógico</h2><p class="subtitle">Registros, formações e próximos encaminhamentos.</p></div>${btn('+ Novo registro','new-pedagogic')}</div>${timeline(s.pedagogic.map(p=>({...p,type:'Pedagógico'})))}<div class="inline-actions">${btn('Agendar acompanhamento','new-meeting','secondary',`data-id="${s.id}" data-type="Acompanhamento"`)}</div>`;
-case 7:return `<h2>Histórico do relacionamento</h2><p class="subtitle">Atividades e mudanças registradas nesta demonstração.</p>${timeline(s.activities)}`;}}
-function timeline(items){return items.length?`<div class="timeline">${items.map(a=>`<div class="timeline-item"><small>${date(a.date)} · ${esc(a.author)}<span class="activity-type">${esc(a.type)}</span></small><p>${esc(a.text)}</p></div>`).join('')}</div>`:'<div class="empty">Nenhum registro nesta seção. Os novos registros aparecerão aqui.</div>';}
-function tasksPage(){const list=db.tasks.filter(t=>(!query||t.title.toLowerCase().includes(query.toLowerCase()))&&(!owner||t.owner===owner)&&(!statusFilter||(statusFilter==='done'?t.done:statusFilter==='late'?!t.done&&t.due<TODAY:!t.done))).sort((a,b)=>Number(a.done)-Number(b.done)||a.due.localeCompare(b.due));return heading('UM PASSO DE CADA VEZ','Tarefas','Organize os próximos passos e mantenha os combinados em dia.',btn('+ Nova tarefa','new-task'))+`<div class="toolbar"><input type="search" id="page-search" placeholder="Buscar tarefa" value="${esc(query)}" aria-label="Buscar tarefa"><select id="owner-filter" aria-label="Responsável"><option value="">Toda a equipe</option>${userOptions(owner)}</select><select id="stage-filter" aria-label="Status"><option value="">Todas as tarefas</option>${[['open','Em aberto'],['late','Atrasadas'],['done','Concluídas']].map(([v,l])=>`<option value="${v}" ${statusFilter===v?'selected':''}>${l}</option>`).join('')}</select></div><section class="panel">${list.map(t=>`<div class="task-row ${t.done?'done':''}"><input type="checkbox" data-task="${t.id}" aria-label="Concluir ${esc(t.title)}" ${t.done?'checked':''}><div class="task-text"><h3>${esc(t.title)}</h3><p>${schoolButton(school(t.schoolId))} · ${esc(t.owner)}</p></div>${badge(t.done?'Concluída':t.due<TODAY?'Atrasada':t.priority,t.done?'teal':t.due<TODAY?'red':t.priority==='Alta'?'orange':'')}<small>${date(t.due)}</small><button class="icon-button" data-action="edit-task" data-task="${t.id}" aria-label="Editar tarefa">✎</button></div>`).join('')||'<div class="empty">Nenhuma tarefa para estes filtros.</div>'}</section>`;}
-function agendaPage(){const first=new Date(year,month,1),last=new Date(year,month+1,0),offset=(first.getDay()+6)%7,events=allEvents().filter(e=>e.status!=='Cancelada'),label=first.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}), cells=Math.ceil((offset+last.getDate())/7)*7;
-return heading('TEMPO PARA BOAS CONVERSAS','Agenda','Reuniões, implantação e acompanhamento em um único lugar.',btn('+ Agendar reunião','new-meeting'))+`<div class="calendar-shell"><section class="panel"><div class="panel-head"><h2 style="text-transform:capitalize">${label}</h2><div class="month-nav"><button class="icon-button" data-action="prev-month" aria-label="Mês anterior">‹</button>${btn('Hoje','today-month','secondary')}<button class="icon-button" data-action="next-month" aria-label="Próximo mês">›</button></div></div><div class="calendar">${['SEG','TER','QUA','QUI','SEX','SÁB','DOM'].map(d=>`<div class="weekday">${d}</div>`).join('')}${Array.from({length:cells},(_,i)=>{const day=i-offset+1,valid=day>0&&day<=last.getDate(),d=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;return `<div class="calendar-day ${valid?'':'dim'} ${d===TODAY?'today':''}">${valid?`<span class="day-num">${day}</span>${events.filter(e=>e.date===d).map(e=>`<button class="calendar-event ${e.type==='Comercial'?'comercial':''}" data-action="event-detail" data-id="${e.schoolId}" title="${esc(e.time+' · '+e.school+' · '+e.type)}">${esc(e.time)} ${esc(e.school)}</button>`).join('')}`:''}</div>`;}).join('')}</div></section><aside><section class="panel"><div class="panel-head"><h2>Neste mês</h2>${badge(events.filter(e=>e.date.startsWith(`${year}-${String(month+1).padStart(2,'0')}`)).length+' reuniões','orange')}</div>${events.filter(e=>e.date.startsWith(`${year}-${String(month+1).padStart(2,'0')}`)).map(e=>`<small style="color:var(--muted)">${date(e.date)}</small>${eventRow(e)}`).join('')||'<div class="empty">Nenhuma reunião neste mês.</div>'}</section><div class="notice" style="margin-top:18px">Google Calendar preparado: use a opção na ficha da reunião para abrir um evento preenchido. Você revisa e salva no Google. A sincronização automática será feita na próxima etapa.</div></aside></div>`;}
-function mentionText(text){return esc(text).replace(/@(Ana Flávia|Camila Torres|Lucas Ferreira)/g,'<span class="mention">@$1</span>');}
-function demandsPage(){const list=db.demands.filter(d=>(!query||(d.title+' '+d.text).toLowerCase().includes(query.toLowerCase()))&&(!owner||d.owner===owner)&&(!statusFilter||d.status===statusFilter));return heading('A EQUIPE EM SINTONIA','Demandas internas','Compartilhe necessidades, mencione pessoas e acompanhe soluções.',btn('+ Nova demanda','new-demand'))+`<div class="toolbar"><input id="page-search" type="search" placeholder="Buscar demanda" value="${esc(query)}" aria-label="Buscar demanda"><select id="owner-filter" aria-label="Responsável"><option value="">Toda a equipe</option>${userOptions(owner)}</select><select id="stage-filter" aria-label="Status"><option value="">Todos os status</option>${['Aberta','Em andamento','Resolvida'].map(v=>`<option ${statusFilter===v?'selected':''}>${v}</option>`).join('')}</select></div><div class="section-grid">${list.map(d=>`<article class="panel demand-card"><div class="card-head">${badge(d.status,d.status==='Resolvida'?'teal':'orange')}${badge(d.priority,d.priority==='Alta'?'red':'')}</div><h2>${esc(d.title)}</h2><p>${schoolButton(school(d.schoolId))}</p><p>${esc(d.text)}</p><div class="card-bottom"><span>${esc(d.owner)} · ${d.comments.length} comentários</span>${btn('Abrir →','open-demand','text',`data-demand="${d.id}"`)}</div></article>`).join('')}</div>${!list.length?'<div class="empty">Nenhuma demanda encontrada.</div>':''}`;}
-function teamPage(){return heading('QUEM CONSTRÓI COM A GENTE','Equipe e habilitações','Responsabilidades visíveis para um trabalho mais conectado.')+`<div class="notice">As habilitações abaixo demonstram a organização da equipe. O controle real de acesso dependerá da autenticação e das permissões no backend.</div><div class="section-grid">${db.users.map(u=>`<section class="panel"><div class="member"><span class="avatar">${esc(u.initials)}</span><div><h3>${esc(u.name)}</h3><p>${esc(u.role)}</p></div></div><p class="subtitle">${esc(u.email)}</p><h3 style="margin:25px 0 14px;font-size:12px">Habilitações</h3><div class="permissions">${u.permissions.map(p=>badge(p)).join('')}</div><div class="inline-actions">${btn('Editar habilitações','edit-user','secondary',`data-user="${u.id}"`)}</div></section>`).join('')}</div>`;}
-function reportsPage(){const cs=clients(),total=cs.reduce((a,s)=>a+s.contracts.reduce((b,c)=>b+c.value,0),0),kits=cs.reduce((a,s)=>a+s.contracts.reduce((b,c)=>b+c.kits,0),0),base=leads().length+cs.length,rate=base?Math.round(cs.length/base*100):0;return heading('DADOS QUE ORIENTAM O CUIDADO','Relatórios','Indicadores calculados a partir dos dados demonstrativos.',btn('Exportar escolas (CSV)','export-csv','secondary'))+`<section class="stats">${[[money(total),'Total contratado'],[kits,'Kits contratados'],[rate+'%','Clientes / funil e clientes'],[cs.filter(s=>s.checklist.every(Boolean)).length,'Implantações concluídas']].map(([n,t])=>`<div class="stat"><div class="stat-top">${t}</div><div class="stat-value">${n}</div><div class="stat-note">Base atual da demonstração</div></div>`).join('')}</section><div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>Oportunidades por responsável</h2>${badge('Prospecção')}</div><div class="report-bars">${db.users.map(u=>{const n=leads().filter(s=>s.owner===u.name).length;return `<div class="funnel-row"><span>${esc(u.name)}</span><div class="bar-track"><div class="bar-fill" style="width:${n/(leads().length||1)*100}%"></div></div><strong>${n} escolas</strong></div>`;}).join('')}</div></section><section class="panel"><h2>Renovações em vista</h2>${cs.flatMap(s=>s.contracts.filter(c=>c.renewalStatus!=='Renovada').map(c=>`<div class="agenda-item"><span class="event-line"></span><div><h3>${schoolButton(s)}</h3><p>${date(c.renewal)} · ${esc(c.renewalStatus)}</p></div></div>`)).join('')||'<div class="empty">Nenhuma renovação pendente.</div>'}</section></div><div class="detail-note">Os contratos podem abranger anos letivos diferentes. O percentual é a proporção de clientes na base atual, sem representar uma taxa histórica de conversão.</div>`;}
-function settingsPage(){return heading('UMA BASE PARA CRESCER','Configurações','O protótipo está pronto para validar a experiência antes da integração.')+`<div class="detail-grid"><section class="panel"><h2>Ambiente demonstrativo</h2><p class="subtitle">Seus testes ficam apenas neste navegador. Nenhum dado é enviado à planilha.</p><div class="info-list" style="margin:25px 0"><div><dt>Google Sheets</dt><dd>${badge('Não conectado','orange')}</dd></div><div><dt>Google Calendar</dt><dd>${badge('Evento manual preparado','')}</dd></div><div><dt>Data de referência</dt><dd>01/10/2026</dd></div><div><dt>Salvamento</dt><dd>Local neste navegador</dd></div></div><div class="inline-actions">${btn('Baixar dados do teste','export-json','secondary')}${btn('Importar dados do teste','import-json','secondary')}${btn('Restaurar demonstração','reset-demo','danger')}</div><input type="file" id="import-file" accept="application/json,.json" hidden></section><section class="panel"><h2>Próxima etapa: a planilha</h2><p class="subtitle">A conexão será preparada após a validação visual e a conferência dos cabeçalhos das abas.</p><div class="permissions" style="margin-top:20px">${['ESCOLAS','CONTATOS','OPORTUNIDADES','ATIVIDADES','TAREFAS','REUNIOES','CONTRATACOES','CONTRATOS','ANOS_LETIVOS','RENOVACOES','KITS_CONTRATADOS','PEDAGOGICO','DEMANDAS','MENSAGENS','DOCUMENTOS','USUARIOS','HABILITACOES','CONFIGURACOES','HISTORICO','LISTAS','LEIA-ME'].map(t=>badge(t,'')).join('')}</div><div class="detail-note">Não há URL de planilha nem credenciais armazenadas neste protótipo.</div></section></div>`;}
-function showForm(title,body,onSubmit,label='Salvar'){document.getElementById('form-content').innerHTML=`<div class="dialog-head"><h2 id="form-title">${title}</h2><button type="button" class="icon-button" data-action="close-form" aria-label="Fechar formulário">×</button></div><form class="form-body" id="active-form">${body}<div class="form-actions">${btn('Cancelar','close-form','secondary','type="button"')}<button type="submit" class="button">${label}</button></div></form>`;document.getElementById('active-form').onsubmit=e=>{e.preventDefault();const f=e.currentTarget;if(!f.reportValidity())return;const data=Object.fromEntries(new FormData(f));if(onSubmit(data,f)===false)return;formDialog.close();persist();};if(!formDialog.open)formDialog.showModal();}
-function schoolForm(editing=false){const s=editing?school(detailId):null;showForm(editing?'Editar escola':'Nova escola',field('Nome da escola','name','text',s?.name||'')+`<div class="form-row">${field('Cidade','city','text',s?.city||'')}${selectField('UF','uf',['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(v=>`<option ${v===(s?.uf||'SP')?'selected':''}>${v}</option>`).join(''))}</div>`+field('Contato principal','contact','text',s?.contact||'')+field('Cargo','role','text',s?.role||'')+`<div class="form-row">${field('E-mail','email','email',s?.email||'',false)}${field('Telefone','phone','tel',s?.phone||'',false)}</div>`+`<div class="form-row">${selectField('Responsável','owner',userOptions(s?.owner||'Ana Flávia'))}<label class="field">Alunos<input name="students" type="number" min="0" max="100000" value="${s?.students||0}" required></label></div>`+field('Segmentos','segments','text',s?.segments||'Educação Infantil')+selectField('Origem','source',['Landing page','Indicação','Evento','Prospecção ativa','Outro'].map(v=>`<option ${s?.source===v?'selected':''}>${v}</option>`).join(''))+selectField('Prioridade','priority',['Normal','Alta'].map(v=>`<option ${s?.priority===v?'selected':''}>${v}</option>`).join(''))+field('Interesse informado','interest','text',s?.interest||'',false)+textField('Observações','notes',s?.notes||'',false),d=>{Object.keys(d).forEach(k=>{if(typeof d[k]==='string')d[k]=d[k].trim();});if(!d.name||!d.city||!d.contact){toast('Preencha nome, cidade e contato.');return false;}d.students=Number(d.students);if(s){Object.assign(s,d);log(s,'Cadastro','Cadastro da escola atualizado.');}else{db.schools.push({...d,id:uid('e'),stage:0,attempts:0,last:TODAY,next:'',activities:[],meetings:[],checklist:[false,false,false,false],pedagogic:[],contracts:[]});}toast(editing?'Escola atualizada.':'Escola criada na demonstração.');});}
-function contactForm(){const s=school(detailId);if(s.attempts>=7){toast('O limite de sete tentativas foi atingido.');return;}showForm(`Tentativa ${s.attempts+1} de 7`,selectField('Canal','type',['Ligação','WhatsApp','E-mail','Contato'].map(v=>`<option>${v}</option>`).join(''))+field('Data do contato','date','date',TODAY)+textField('Resultado do contato','text')+field('Próxima atividade','next','date',s.next||'',false),d=>{s.attempts++;s.activities.unshift({date:d.date,type:d.type,text:d.text.trim(),author:'Ana Flávia'});s.last=d.date;s.next=d.next;toast('Tentativa registrada.');});}
-function moveStageForm(){const s=school(detailId);showForm('Mover etapa',selectField('Nova etapa','stage',stages.slice(0,4).map((v,i)=>`<option value="${i}" ${s.stage===i?'selected':''}>${v}</option>`).join(''))+field('Próxima atividade','next','date',s.next||'',false),d=>{s.stage=Number(d.stage);s.next=d.next;log(s,'Etapa',`Oportunidade movida para ${stages[s.stage]}.`);toast('Etapa atualizada.');});}
-function meetingForm(schoolId='',meetingId='',type='Pedagógica'){const s=school(schoolId||detailId),m=s?.meetings.find(m=>m.id===meetingId);showForm(m?'Editar reunião':'Agendar reunião',selectField('Escola','schoolId',schoolOptions(s?.id))+selectField('Tipo','type',['Pedagógica','Comercial','Implantação','Acompanhamento','Renovação'].map(v=>`<option ${v===(m?.type||type)?'selected':''}>${v}</option>`).join(''))+`<div class="form-row">${field('Data','date','date',m?.date||TODAY)}${field('Horário','time','time',m?.time||'10:00')}</div>`+selectField('Responsável','owner',userOptions(m?.owner||s?.owner))+`<div class="form-row"><label class="field">Duração (minutos)<input type="number" name="duration" min="15" max="480" step="15" value="${m?.duration||60}" required></label>${selectField('Status','status',['Agendada','Realizada','Cancelada'].map(v=>`<option ${v===m?.status?'selected':''}>${v}</option>`).join(''))}</div>`+textField('Pauta / resultado e encaminhamentos','notes',m?.notes||''),d=>{if(m&&d.schoolId!==s.id){toast('Para mudar a escola, cancele esta reunião e crie outra.');return false;}const target=school(d.schoolId);d.duration=Number(d.duration);delete d.schoolId;if(m)Object.assign(m,d);else target.meetings.push({...d,id:uid('m')});target.next=d.date;log(target,'Reunião',`${m?'Atualizada':'Agendada'} reunião ${d.type.toLowerCase()} para ${date(d.date)} às ${d.time}.`);toast('Reunião salva.');});}
-function taskForm(schoolId='',taskId=''){const t=db.tasks.find(t=>t.id===taskId);showForm(t?'Editar tarefa':'Nova tarefa',field('Título','title','text',t?.title||'')+selectField('Escola','schoolId',schoolOptions(t?.schoolId||schoolId||detailId))+field('Prazo','due','date',t?.due||TODAY)+selectField('Responsável','owner',userOptions(t?.owner||'Ana Flávia'))+selectField('Prioridade','priority',['Normal','Alta'].map(v=>`<option ${v===t?.priority?'selected':''}>${v}</option>`).join('')),d=>{if(t)Object.assign(t,d);else db.tasks.push({...d,id:uid('t'),done:false});toast('Tarefa salva.');});}
-function contractForm(contractId=''){const s=school(detailId),c=s.contracts.find(c=>c.id===contractId);showForm(c?'Editar contrato':'Registrar contratação',`<div class="form-row"><label class="field">Ano letivo<input type="number" name="year" min="2020" max="2100" value="${c?.year||2027}" required></label><label class="field">Kits contratados<input type="number" name="kits" min="1" max="100000" value="${c?.kits||s.students||1}" required></label></div><label class="field">Valor total (R$)<input name="value" type="number" min="0" step="0.01" value="${c?.value||s.value||0}" required></label>`+field('Descrição dos kits','kitDescription','text',c?.kitDescription||'Coleção Alicerces')+`<div class="form-row">${field('Data de assinatura','signed','date',c?.signed||TODAY)}${field('Data para renovação','renewal','date',c?.renewal||'2027-10-01')}</div>`+selectField('Status do contrato','status',['Assinado','Ativo','Encerrado'].map(v=>`<option ${v===c?.status?'selected':''}>${v}</option>`).join('')),d=>{if(d.renewal<d.signed){toast('A data de renovação deve ser posterior à assinatura.');return false;}if(s.contracts.some(other=>other.id!==c?.id&&other.year===Number(d.year))){toast('Já existe contrato para este ano letivo. Edite o contrato existente.');return false;}['year','kits','value'].forEach(k=>d[k]=Number(d[k]));if(c)Object.assign(c,d);else{s.contracts.push({...d,id:uid('c'),renewalStatus:'A iniciar'});s.stage=4;log(s,'Contratação',`Contrato registrado para ${d.year}: ${d.kits} kits, ${money(d.value)}.`);}toast(c?'Contrato atualizado.':'Contratação registrada. A escola agora aparece em Clientes.');});}
-function demandForm(schoolId=''){showForm('Nova demanda interna',field('Título','title')+selectField('Escola','schoolId',schoolOptions(schoolId||detailId))+textField('Descrição','text')+selectField('Responsável','owner',userOptions())+selectField('Prioridade','priority','<option>Normal</option><option>Alta</option>'),d=>{db.demands.push({...d,id:uid('d'),status:'Aberta',date:TODAY,comments:[]});toast('Demanda criada.');});}
-function openDemand(id){const d=db.demands.find(x=>x.id===id);showForm('Demanda · '+esc(d.title),`<div class="notice">${esc(school(d.schoolId).name)}<br>${esc(d.text)}</div>`+selectField('Status','status',['Aberta','Em andamento','Resolvida'].map(v=>`<option ${v===d.status?'selected':''}>${v}</option>`).join(''))+selectField('Responsável','owner',userOptions(d.owner))+`<h3>Conversa da equipe</h3>${d.comments.map(c=>`<div class="timeline-item" style="margin-top:18px"><small>${esc(c.author)} · ${date(c.date)}</small><p>${mentionText(c.text)}</p></div>`).join('')||'<p class="subtitle">Nenhum comentário ainda.</p>'}`+textField('Adicionar comentário (opcional)','comment','',false)+`<p class="visual-tip">Mencione: ${db.users.map(u=>'@'+esc(u.name)).join(' · ')}. As menções ficam registradas; não enviam notificações nesta versão.</p>`,v=>{d.status=v.status;d.owner=v.owner;if(v.comment.trim())d.comments.push({text:v.comment.trim(),author:'Ana Flávia',date:TODAY,mentions:db.users.filter(u=>v.comment.includes('@'+u.name)).map(u=>u.name)});toast('Demanda atualizada.');});}
-function calendarLink(sId,mId){const s=school(sId),m=s?.meetings.find(x=>x.id===mId);if(!m)return;const start=new Date(`${m.date}T${m.time}:00-03:00`),end=new Date(start.getTime()+m.duration*60000),format=d=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');const params=new URLSearchParams({action:'TEMPLATE',text:`Alicerces · ${m.type} · ${s.name}`,dates:`${format(start)}/${format(end)}`,ctz:'America/Sao_Paulo',details:`${m.notes}\nResponsável: ${m.owner}\nEvento criado a partir do protótipo demonstrativo.`});window.open('https://calendar.google.com/calendar/render?'+params,'_blank','noopener,noreferrer');}
-function download(name,contents,type){const blob=new Blob([contents],{type}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
-function exportCsv(){const rows=[['Escola','Cidade','UF','Contato','Responsável','Etapa','Tentativas','Alunos','Próxima atividade'],...db.schools.map(s=>[s.name,s.city,s.uf,s.contact,s.owner,stages[s.stage],s.attempts,s.students,s.next])];const cell=v=>'"'+String(v??'').replace(/^[=+\-@]/,"'$&").replace(/"/g,'""')+'"';download('alicerces-escolas-demo.csv','\ufeff'+rows.map(r=>r.map(cell).join(';')).join('\r\n'),'text/csv;charset=utf-8');toast('Arquivo demonstrativo exportado.');}
-function validImport(v){return v&&v.version===1&&['schools','tasks','demands','users'].every(k=>Array.isArray(v[k]))&&v.schools.length>0&&v.users.length>0&&new Set(v.schools.map(s=>s.id)).size===v.schools.length&&v.schools.every(s=>typeof s.id==='string'&&['name','city','uf','contact','role','email','phone','owner','segments','source','interest','notes'].every(k=>typeof s[k]==='string')&&Number.isInteger(s.stage)&&s.stage>=0&&s.stage<=5&&Number.isInteger(s.attempts)&&s.attempts>=0&&s.attempts<=7&&Number.isFinite(s.students)&&['activities','meetings','checklist','pedagogic','contracts'].every(k=>Array.isArray(s[k]))&&s.checklist.length===4&&s.checklist.every(x=>typeof x==='boolean')&&s.activities.every(a=>typeof a.date==='string'&&typeof a.type==='string'&&typeof a.text==='string')&&s.meetings.every(m=>typeof m.id==='string'&&typeof m.date==='string'&&typeof m.time==='string'&&typeof m.type==='string'&&Number.isFinite(m.duration))&&s.contracts.every(c=>typeof c.id==='string'&&Number.isFinite(c.year)&&Number.isFinite(c.value)&&Number.isFinite(c.kits)))&&v.tasks.every(t=>v.schools.some(s=>s.id===t.schoolId)&&typeof t.id==='string'&&typeof t.title==='string'&&typeof t.due==='string'&&typeof t.done==='boolean')&&v.demands.every(d=>v.schools.some(s=>s.id===d.schoolId)&&typeof d.title==='string'&&typeof d.text==='string'&&Array.isArray(d.comments)&&d.comments.every(c=>typeof c.text==='string'))&&v.users.every(u=>typeof u.name==='string'&&typeof u.initials==='string'&&Array.isArray(u.permissions)&&u.permissions.every(p=>typeof p==='string'));}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b)return;const a=b.dataset.action,s=school(detailId);if(a.startsWith('nav-')){setPage(a.slice(4));return;}switch(a){case 'open-school':openSchool(b.dataset.id);break;case 'event-detail':openSchool(b.dataset.id,2);break;case 'close-detail':detail.close();break;case 'close-form':formDialog.close();break;case 'detail-tab':detailTab=Number(b.dataset.tab);renderDetail();document.getElementById('tab-'+detailTab).focus();break;case 'new-school':schoolForm();break;case 'edit-school':schoolForm(true);break;case 'view-kanban':view='kanban';render();break;case 'view-list':view='list';render();break;case 'new-contact':contactForm();break;case 'move-stage':moveStageForm();break;case 'next-activity':showForm('Próxima atividade',field('Data','next','date',s.next||TODAY)+textField('Atividade prevista','text'),d=>{s.next=d.next;log(s,'Planejamento',`${date(d.next)}: ${d.text}`);toast('Próxima atividade registrada.');});break;case 'new-meeting':meetingForm(b.dataset.id,'',b.dataset.type||'Pedagógica');break;case 'edit-meeting':meetingForm(detailId,b.dataset.meeting);break;case 'complete-meeting':{const m=s.meetings.find(m=>m.id===b.dataset.meeting);showForm('Concluir reunião',textField('Resultado e próximos encaminhamentos','notes',m.notes),d=>{m.status='Realizada';m.notes=d.notes;log(s,'Reunião realizada',`${m.type}: ${d.notes}`);toast('Reunião concluída.');});break;}case 'cancel-meeting':{const m=s.meetings.find(m=>m.id===b.dataset.meeting);showForm('Cancelar reunião',textField('Motivo do cancelamento','reason'),d=>{m.status='Cancelada';log(s,'Reunião cancelada',`${m.type}: ${d.reason}`);toast('Reunião cancelada na demonstração.');});break;}case 'calendar-link':calendarLink(b.dataset.id,b.dataset.meeting);break;case 'new-task':taskForm(b.dataset.id);break;case 'edit-task':taskForm('',b.dataset.task);break;case 'edit-proposal':showForm('Proposta comercial',`<label class="field">Valor total (R$)<input type="number" min="0" step="0.01" name="value" value="${s.value||0}" required></label>`+textField('Condições e observações','proposal',s.proposal||''),d=>{s.value=Number(d.value);s.proposal=d.proposal;log(s,'Proposta','Proposta atualizada: '+money(s.value));toast('Proposta salva.');});break;case 'new-contract':contractForm();break;case 'edit-contract':contractForm(b.dataset.contract);break;case 'renew-contract':{const c=s.contracts.find(c=>c.id===b.dataset.contract);showForm('Acompanhar renovação',selectField('Status','renewalStatus',['A iniciar','Em negociação','Renovada','Não renovada'].map(v=>`<option ${v===c.renewalStatus?'selected':''}>${v}</option>`).join(''))+field('Data de acompanhamento','renewal','date',c.renewal)+textField('Observações','text'),d=>{c.renewalStatus=d.renewalStatus;c.renewal=d.renewal;log(s,'Renovação',`${c.year}: ${d.renewalStatus}. ${d.text}`);toast('Renovação atualizada. Um novo ano letivo requer um novo contrato.');});break;}case 'lost':showForm('Registrar não avanço',textField('Motivo','reason'),d=>{s.stage=5;s.lostReason=d.reason;log(s,'Decisão','Não avançou: '+d.reason);toast('Decisão registrada. Consulte pelo filtro Não avançou.');});break;case 'reopen':s.stage=0;log(s,'Etapa','Oportunidade reaberta em Contato inicial.');persist();toast('Oportunidade reaberta.');break;case 'new-pedagogic':showForm('Registro pedagógico',field('Data','date','date',TODAY)+textField('Registro e encaminhamentos','text'),d=>{s.pedagogic.unshift({...d,author:'Ana Flávia'});log(s,'Pedagógico',d.text);toast('Registro pedagógico salvo.');});break;case 'new-demand':demandForm(b.dataset.id);break;case 'open-demand':openDemand(b.dataset.demand);break;case 'prev-month':month--;if(month<0){month=11;year--;}render();break;case 'next-month':month++;if(month>11){month=0;year++;}render();break;case 'today-month':month=9;year=2026;render();break;case 'edit-user':{const u=db.users.find(u=>u.id===b.dataset.user);showForm('Habilitações · '+esc(u.name),`<p class="notice">Alteração demonstrativa. Estas opções não aplicam segurança nem controle real de acesso.</p>${['Gestão','Prospecção','Clientes','Demandas','Pedagógico','Reuniões','Implantação','Comercial','Contratos','Renovação'].map(p=>`<label class="check-row"><input name="permission" value="${p}" type="checkbox" ${u.permissions.includes(p)?'checked':''}>${p}</label>`).join('')}`,(_,f)=>{u.permissions=new FormData(f).getAll('permission');toast('Habilitações demonstrativas atualizadas.');});break;}case 'export-csv':exportCsv();break;case 'export-json':download('alicerces-dados-demo.json',JSON.stringify(db,null,2),'application/json');toast('Dados de teste exportados.');break;case 'import-json':document.getElementById('import-file').click();break;case 'reset-demo':showForm('Restaurar demonstração','<p class="notice">Isso substitui os testes salvos neste navegador pelos dados fictícios originais. Baixe os dados antes se quiser guardá-los.</p>',()=>{db=clone(window.ALICERCES_DEMO);detailId=null;if(detail.open)detail.close();toast('Demonstração restaurada.');},'Restaurar');break;}});
-document.addEventListener('change',async e=>{const el=e.target;if(el.id==='owner-filter'){owner=el.value;render();}if(el.id==='stage-filter'){statusFilter=el.value;render();}if(el.dataset.task){const t=db.tasks.find(t=>t.id===el.dataset.task);t.done=el.checked;persist();toast(t.done?'Tarefa concluída.':'Tarefa reaberta.');}if(el.dataset.checklist!==undefined){const s=school(detailId);s.checklist[Number(el.dataset.checklist)]=el.checked;log(s,'Implantação',`${checklist[Number(el.dataset.checklist)]}: ${el.checked?'concluída':'reaberta'}.`);persist();}if(el.id==='import-file'&&el.files[0]){const f=el.files[0];if(f.size>2000000){toast('Use um arquivo de teste de até 2 MB.');return;}try{const parsed=JSON.parse(await f.text());if(!validImport(parsed))throw Error();showForm('Importar dados do teste','<p class="notice">Os dados deste arquivo substituirão seus testes atuais neste navegador.</p>',()=>{db=parsed;persist();toast('Dados de teste importados.');},'Importar');}catch{toast('Arquivo inválido. Use um arquivo exportado por este protótipo.');}}});
-document.addEventListener('input',e=>{const el=e.target;if(el.id==='page-search'){query=el.value;const pos=el.selectionStart;render();const fresh=document.getElementById('page-search');fresh.focus();try{fresh.setSelectionRange(pos,pos);}catch{}}if(el.id==='global-search'){query=el.value;if(page!=='prospeccao'){page='prospeccao';view='list';statusFilter='all';location.hash='prospeccao';}render();}});
-document.addEventListener('keydown',e=>{if(e.target.matches('[role="tab"]')&&['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();detailTab=e.key==='Home'?0:e.key==='End'?tabs.length-1:(detailTab+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;renderDetail();document.getElementById('tab-'+detailTab).focus();}});
-main.addEventListener('dragstart',e=>{const card=e.target.closest('.lead-card');if(card){dragId=card.dataset.id;e.dataTransfer.setData('text/plain',dragId);e.dataTransfer.effectAllowed='move';}});
-main.addEventListener('dragover',e=>{const col=e.target.closest('.kanban-column');if(col){e.preventDefault();col.classList.add('drop-active');}});
-main.addEventListener('dragleave',e=>{const col=e.target.closest('.kanban-column');if(col&&!col.contains(e.relatedTarget))col.classList.remove('drop-active');});
-main.addEventListener('drop',e=>{const col=e.target.closest('.kanban-column');if(col){e.preventDefault();const s=school(dragId||e.dataTransfer.getData('text/plain')),stage=Number(col.dataset.stage);if(s&&s.stage!==stage){s.stage=stage;log(s,'Etapa','Oportunidade movida para '+stages[stage]+'.');persist();toast('Etapa atualizada.');}col.classList.remove('drop-active');dragId=null;}});
-main.addEventListener('dragend',()=>{dragId=null;document.querySelectorAll('.drop-active').forEach(c=>c.classList.remove('drop-active'));});
-document.getElementById('menu-toggle').onclick=()=>{const side=document.getElementById('sidebar');side.classList.toggle('open');document.getElementById('menu-toggle').setAttribute('aria-expanded',side.classList.contains('open'));};
-window.addEventListener('hashchange',()=>{const p=location.hash.slice(1);if(p!==page)setPage(p);});
-// Optional browser-agent access uses the same local data and visible detail view.
-if(document.modelContext?.registerTool){
-const lifecycle=new AbortController();
-const register=tool=>{try{Promise.resolve(document.modelContext.registerTool(tool,{signal:lifecycle.signal})).catch(()=>{});}catch{/* Browser support is optional. */}};
-register({name:'search_demo_schools',title:'Buscar escolas demonstrativas',description:'Consulta a base fictícia local de escolas. Não altera registros nem consulta a planilha.',inputSchema:{type:'object',properties:{query:{type:'string'}},required:['query'],additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute(input){if(!input||typeof input.query!=='string'||input.query.length>200)throw Error('Consulta inválida.');const q=input.query.toLocaleLowerCase('pt-BR');return {schools:db.schools.filter(s=>[s.name,s.city,s.contact].some(v=>v.toLocaleLowerCase('pt-BR').includes(q))).map(s=>({id:s.id,name:s.name,city:s.city,stage:stages[s.stage]}))};}});
-register({name:'open_demo_school',title:'Abrir ficha de escola',description:'Abre a ficha visível de uma escola demonstrativa pelo ID. Não altera o cadastro.',inputSchema:{type:'object',properties:{schoolId:{type:'string'}},required:['schoolId'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:true},execute(input){if(!input||typeof input.schoolId!=='string'||!school(input.schoolId))throw Error('Escola não encontrada.');openSchool(input.schoolId);return {schoolId:input.schoolId,opened:true};}});
-window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});
+/* ================================================================
+   CRM Alicerces — versão operacional (ligada ao Apps Script)
+   ================================================================ */
+const API_URL = (new URLSearchParams(location.search).get('api')) || window.CRM_API_URL || '';
+const TOKEN_KEY = 'crm-alicerces-sessao';
+
+/* ---------- Status que não estão na aba LISTAS ---------- */
+const ST = {
+  escola: ['Prospecção', 'Cliente', 'Não avançou', 'Inativa'],
+  tarefa: ['Aberta', 'Concluída', 'Cancelada'],
+  prioridade: ['Alta', 'Normal', 'Baixa'],
+  demanda: ['Aberta', 'Em andamento', 'Concluída'],
+  contratacao: ['Em andamento', 'Concluída', 'Cancelada'],
+  contrato: ['Vigente', 'Encerrado', 'Rescindido'],
+  anoLetivo: ['Ativo', 'Encerrado'],
+  renovacao: ['Aberta', 'Em negociação', 'Renovada', 'Não renovada'],
+  pedagogico: ['Agendado', 'Realizado', 'Cancelado'],
+  documento: ['Pendente', 'Recebido', 'Aprovado'],
+  perfil: ['Gestor', 'Operacional']
+};
+const ETAPAS_CONTRATACAO = [
+  ['DATA_DOCUMENTOS_RECEBIDOS', 'Documentos recebidos'], ['DATA_KITS_RECEBIDOS', 'Definição de kits recebida'],
+  ['DATA_DOCS_ENVIADOS_APROVACAO', 'Documentos enviados para aprovação'], ['DATA_APROVACAO_CLIENTE', 'Aprovação do cliente'],
+  ['DATA_ENVIO_ASSINATURA', 'Enviado para assinatura'], ['DATA_ASSINATURA_CLIENTE', 'Assinado pelo cliente'],
+  ['DATA_ASSINATURA_EQUIPE', 'Assinado pela Alicerces']
+];
+const TABS = ['Visão geral', 'Contatos', 'Tentativas e atividades', 'Reuniões', 'Comercial', 'Contratos', 'Pedagógico', 'Demandas', 'Histórico'];
+const NAV = [['inicio', 'Início', 'home'], ['prospeccao', 'Prospecção', 'columns'], ['clientes', 'Clientes', 'building'], ['agenda', 'Agenda', 'calendar'], ['tarefas', 'Tarefas', 'check'], ['demandas', 'Demandas', 'message'], ['equipe', 'Equipe', 'users'], ['relatorios', 'Relatórios', 'chart'], ['configuracoes', 'Configurações', 'settings']];
+const PATHS = { home: 'M3 10 12 3l9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10 M9 21v-8h6v8', columns: 'M3 4h18v16H3z M9 4v16 M15 4v16', building: 'M5 21V3h14v18 M3 21h18 M9 7h1 M14 7h1 M9 11h1 M14 11h1 M10 21v-6h4v6', calendar: 'M3 5h18v16H3z M7 3v4 M17 3v4 M3 10h18 M7 14h2 M13 14h2 M7 18h2', check: 'M4 4h16v16H4z M8 12l3 3 5-6', message: 'M3 4h18v14H8l-5 3V4 M7 8h10 M7 12h7', users: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M17 4a4 4 0 0 1 0 8 M22 21v-2a4 4 0 0 0-3-4', chart: 'M4 3v18h18 M8 17v-5 M13 17V7 M18 17v-8', settings: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z', refresh: 'M20 11a8 8 0 1 0-2.3 5.7 M20 4v7h-7' };
+
+/* ---------- Utilidades ---------- */
+const icon = n => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${PATHS[n] || PATHS.building}"/></svg>`;
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const hoje = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const agora = () => { const d = new Date(); return `${hoje()}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const somarDias = (iso, n) => { const d = new Date(iso.slice(0, 10) + 'T12:00:00'); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const dia = v => v ? String(v).slice(0, 10) : '';
+const hora = v => String(v || '').length > 10 ? String(v).slice(11, 16) : '';
+const data = v => v && /^\d{4}-\d{2}-\d{2}/.test(v) ? new Date(dia(v) + 'T12:00:00').toLocaleDateString('pt-BR') : (v ? esc(v) : '—');
+const dataHora = v => v ? data(v) + (hora(v) ? ' · ' + hora(v) : '') : '—';
+const curta = v => v ? new Date(dia(v) + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : 'Sem data';
+const dinheiro = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const iniciais = v => String(v || '?').split(' ').filter(Boolean).map(s => s[0]).slice(0, 2).join('').toUpperCase();
+const sim = v => v === true || /^(true|sim|1)$/i.test(String(v));
+const norm = v => String(v || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} }, del(k) { try { localStorage.removeItem(k); } catch {} } };
+
+/* ---------- Estado ---------- */
+let token = store.get(TOKEN_KEY) || '';
+let D = null; // { usuario, tabelas, listas, config, planilha }
+let page = 'inicio', view = 'kanban', query = '', owner = '', statusFilter = '', detailId = null, detailTab = 0, dragId = null;
+let mes = new Date().getMonth(), ano = new Date().getFullYear(), ocupado = false;
+const $ = id => document.getElementById(id);
+const main = $('main'), detail = $('detail-dialog'), formDialog = $('form-dialog');
+
+/* ---------- Acesso aos dados ---------- */
+const T = nome => (D && D.tabelas[nome]) || [];
+const L = cat => (D && D.listas[cat]) || [];
+const cfg = (k, p) => { const v = D && D.config[k] && Number(D.config[k].valor); return v > 0 ? v : p; };
+const eu = () => D ? D.usuario : null;
+const usuarios = () => T('USUARIOS');
+const ativos = () => usuarios().filter(u => sim(u.ATIVO));
+const nomeUsuario = id => (usuarios().find(u => u.ID_USUARIO === id) || {}).NOME || (id ? id : '—');
+const escola = id => T('ESCOLAS').find(e => e.ID_ESCOLA === id);
+const oportunidadeDe = id => T('OPORTUNIDADES').filter(o => o.ID_ESCOLA === id).slice(-1)[0];
+const contatosDe = id => T('CONTATOS').filter(c => c.ID_ESCOLA === id);
+const principal = id => { const cs = contatosDe(id).filter(c => sim(c.ATIVO) || c.ATIVO === ''); return cs.find(c => sim(c.CONTATO_PRINCIPAL)) || cs[0]; };
+const encerrada = o => o && ['Ganho', 'Perdido'].includes(o.STATUS);
+const leads = () => T('OPORTUNIDADES').filter(o => !encerrada(o) && escola(o.ID_ESCOLA));
+const perdidas = () => T('OPORTUNIDADES').filter(o => o.STATUS === 'Perdido');
+const clientes = () => T('ESCOLAS').filter(e => e.STATUS_GERAL === 'Cliente');
+const contratosDe = id => T('CONTRATOS').filter(c => c.ID_ESCOLA === id);
+const kitsDoContrato = id => T('KITS_CONTRATADOS').filter(k => k.ID_CONTRATO === id);
+const valorKits = ks => ks.reduce((a, k) => a + Number(k.VALOR_REFERENCIA || 0) * Number(k.QUANTIDADE_CONTRATADA || 0), 0);
+const maxTent = () => cfg('MAX_TENTATIVAS_PRE', 7);
+
+/* ---------- Comunicação com o Apps Script ---------- */
+async function api(acao, dados = {}) {
+  if (!API_URL) throw new Error('O endereço da API ainda não foi configurado nesta página.');
+  let resp;
+  try {
+    resp = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ acao, dados, token }), redirect: 'follow' });
+  } catch {
+    throw new Error('Não foi possível falar com o servidor. Confira sua internet e tente de novo.');
+  }
+  let json;
+  try { json = await resp.json(); } catch { throw new Error('Resposta inesperada do servidor. Confira se a implantação do Apps Script está como "Qualquer pessoa".'); }
+  if (!json.ok) {
+    if (json.codigo === 'SESSAO') { sair(true); }
+    if (json.codigo === 'TROCAR_SENHA') { telaSenha(true); }
+    const e = new Error(json.erro || 'Erro desconhecido.'); e.codigo = json.codigo; throw e;
+  }
+  return json.resultado;
 }
-page=nav.some(n=>n[0]===location.hash.slice(1))?location.hash.slice(1):'inicio';render();if(storageWarning)toast('Salvamento local indisponível. Você ainda pode testar nesta sessão.');
+async function gravar(acao, dados, msg) {
+  setOcupado(true);
+  try {
+    const r = await api(acao, dados);
+    D = r.dados; render(); if (detail.open) renderDetail();
+    if (msg) toast(msg);
+    return r.resultado;
+  } finally { setOcupado(false); }
+}
+const salvar = (tabela, registro, msg = 'Salvo na planilha.') => gravar('salvar', { tabela, registro }, msg);
+async function recarregar(msg) {
+  setOcupado(true);
+  try { D = await api('carregar'); render(); if (detail.open) renderDetail(); if (msg) toast(msg); }
+  catch (e) { if (e.codigo !== 'SESSAO' && e.codigo !== 'TROCAR_SENHA') toast(e.message); }
+  finally { setOcupado(false); }
+}
+function setOcupado(v) { ocupado = v; document.body.classList.toggle('busy', v); const s = $('sync-status'); if (s) s.textContent = v ? 'Sincronizando…' : 'Dados da planilha'; }
+
+/* ---------- Login / senha ---------- */
+function telaLogin(msg = '', emailDigitado = '') {
+  document.body.classList.add('auth');
+  $('auth').innerHTML = `<form class="auth-card" id="login-form" novalidate>
+    <div class="brand"><span class="brand-mark">a</span><span>alicerces<small>CRM EDITORIAL</small></span></div>
+    <h1>Entrar</h1><p class="subtitle">Use o e-mail cadastrado pela gestão.</p>
+    ${API_URL ? '' : '<div class="notice">Esta página ainda não está ligada ao Apps Script. Fale com a administradora do CRM.</div>'}
+    <label class="field">E-mail<input type="email" name="email" autocomplete="username" required value="${esc(emailDigitado || store.get('crm-alicerces-email') || '')}"></label>
+    <label class="field">Senha<input type="password" name="senha" autocomplete="current-password" required></label>
+    <p class="form-error" role="alert">${esc(msg)}</p>
+    <button class="button" type="submit">Entrar</button>
+    <p class="visual-tip">Primeiro acesso? Use a senha provisória que você recebeu. Em seguida o sistema pede para você criar a sua.</p>
+  </form>`;
+  const f = $('login-form');
+  f.querySelector(msg ? '[name=senha]' : (f.email.value ? '[name=senha]' : '[name=email]')).focus();
+  f.onsubmit = async e => {
+    e.preventDefault();
+    if (!f.reportValidity()) return;
+    const b = f.querySelector('button'); b.disabled = true; b.textContent = 'Entrando…';
+    try {
+      const r = await api('login', { email: f.email.value.trim(), senha: f.senha.value });
+      token = r.token; store.set(TOKEN_KEY, token); store.set('crm-alicerces-email', f.email.value.trim());
+      if (r.trocarSenha) telaSenha(true); else iniciar();
+    } catch (err) { telaLogin(err.message, f.email.value.trim()); }
+  };
+}
+function telaSenha(obrigatoria) {
+  const html = `<form class="${obrigatoria ? 'auth-card' : 'form-body'}" id="senha-form">
+    ${obrigatoria ? '<div class="brand"><span class="brand-mark">a</span><span>alicerces<small>CRM EDITORIAL</small></span></div><h1>Crie sua senha</h1><p class="subtitle">Você entrou com a senha provisória. Agora escolha uma senha só sua.</p>' : ''}
+    <label class="field">Senha atual${obrigatoria ? ' (provisória)' : ''}<input type="password" name="senhaAtual" required autocomplete="current-password"></label>
+    <label class="field">Nova senha (mínimo 8 caracteres)<input type="password" name="novaSenha" minlength="8" required autocomplete="new-password"></label>
+    <label class="field">Repita a nova senha<input type="password" name="confirma" minlength="8" required autocomplete="new-password"></label>
+    <p class="form-error" role="alert"></p>
+    <div class="form-actions">${obrigatoria ? btn('Sair', 'logout', 'secondary', 'type="button"') : btn('Cancelar', 'close-form', 'secondary', 'type="button"')}<button class="button" type="submit">Salvar senha</button></div>
+  </form>`;
+  if (obrigatoria) { document.body.classList.add('auth'); $('auth').innerHTML = html; }
+  else { $('form-content').innerHTML = `<div class="dialog-head"><h2 id="form-title">Alterar minha senha</h2><button type="button" class="icon-button" data-action="close-form" aria-label="Fechar">×</button></div>${html}`; formDialog.showModal(); }
+  const f = $('senha-form');
+  f.onsubmit = async e => {
+    e.preventDefault();
+    const erro = f.querySelector('.form-error');
+    if (!f.reportValidity()) return;
+    if (f.novaSenha.value !== f.confirma.value) { erro.textContent = 'As duas senhas novas não são iguais.'; return; }
+    const b = f.querySelector('[type=submit]'); b.disabled = true;
+    try {
+      await api('alterarSenha', { senhaAtual: f.senhaAtual.value, novaSenha: f.novaSenha.value });
+      if (obrigatoria) iniciar(); else { formDialog.close(); toast('Senha alterada.'); }
+    } catch (err) { erro.textContent = err.message; b.disabled = false; }
+  };
+}
+async function sair(expirou) {
+  if (!expirou && token) { try { await api('sair'); } catch {} }
+  token = ''; D = null; store.del(TOKEN_KEY);
+  if (detail.open) detail.close(); if (formDialog.open) formDialog.close();
+  telaLogin(expirou ? 'Sua sessão expirou. Entre novamente.' : '');
+}
+async function iniciar() {
+  document.body.classList.add('auth');
+  $('auth').innerHTML = '<div class="auth-card"><div class="brand"><span class="brand-mark">a</span><span>alicerces<small>CRM EDITORIAL</small></span></div><p class="subtitle">Carregando dados da planilha…</p></div>';
+  try {
+    D = await api('carregar');
+    document.body.classList.remove('auth'); $('auth').innerHTML = '';
+    page = NAV.some(n => n[0] === location.hash.slice(1)) ? location.hash.slice(1) : 'inicio';
+    render();
+  } catch (e) { if (e.codigo !== 'SESSAO' && e.codigo !== 'TROCAR_SENHA') telaLogin(e.message); }
+}
+
+/* ---------- Componentes ---------- */
+function toast(text) { const t = $('toast'); t.textContent = text; t.classList.add('visible'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('visible'), 4200); }
+const badge = (t, c = 'teal') => `<span class="pill ${c}">${esc(t)}</span>`;
+const heading = (k, t, s, a = '') => `<div class="page-heading"><div><div class="eyebrow">${k}</div><h1>${t}</h1><p class="subtitle">${s}</p></div><div class="heading-actions">${a}</div></div>`;
+const btn = (t, a, k = '', x = '') => `<button class="button ${k}" data-action="${a}" ${x}>${t}</button>`;
+const escolaBtn = e => e ? `<button class="school-link" data-action="open-school" data-id="${esc(e.ID_ESCOLA)}">${esc(e.NOME_ESCOLA)}</button>` : '<span class="secondary-text">Geral</span>';
+const escolaCell = e => e ? `<div class="school-cell"><span class="school-icon">${esc(iniciais(e.NOME_ESCOLA))}</span><div>${escolaBtn(e)}<span class="secondary-text">${esc(e.CIDADE || '')}${e.UF ? ' · ' + esc(e.UF) : ''}</span></div></div>` : '—';
+const opts = (lista, sel = '', vazio = '') => (vazio !== false ? `<option value="">${esc(vazio || 'Selecione')}</option>` : '') + lista.map(v => `<option ${String(v) === String(sel) ? 'selected' : ''}>${esc(v)}</option>`).join('');
+const optsUsuarios = (sel = '', vazio = 'Selecione') => `<option value="">${esc(vazio)}</option>` + ativos().map(u => `<option value="${esc(u.ID_USUARIO)}" ${u.ID_USUARIO === sel ? 'selected' : ''}>${esc(u.NOME)}</option>`).join('');
+const optsEscolas = (sel = '') => `<option value="">Sem escola (geral)</option>` + T('ESCOLAS').slice().sort((a, b) => String(a.NOME_ESCOLA).localeCompare(b.NOME_ESCOLA)).map(e => `<option value="${esc(e.ID_ESCOLA)}" ${e.ID_ESCOLA === sel ? 'selected' : ''}>${esc(e.NOME_ESCOLA)}</option>`).join('');
+const campo = (rotulo, nome, tipo = 'text', valor = '', req = false, extra = '') => `<label class="field">${rotulo}${req ? ' *' : ''}<input type="${tipo}" name="${nome}" value="${esc(valor)}" ${req ? 'required' : ''} ${extra}></label>`;
+const lista = (rotulo, nome, html, req = false) => `<label class="field">${rotulo}${req ? ' *' : ''}<select name="${nome}" ${req ? 'required' : ''}>${html}</select></label>`;
+const texto = (rotulo, nome, valor = '', req = false) => `<label class="field">${rotulo}${req ? ' *' : ''}<textarea name="${nome}" ${req ? 'required' : ''} maxlength="4000">${esc(valor)}</textarea></label>`;
+const marca = (rotulo, nome, ligado) => `<label class="check-field"><input type="checkbox" name="${nome}" data-bool ${ligado ? 'checked' : ''}> ${rotulo}</label>`;
+const multipla = (rotulo, nome, opcoes, valor) => { const sel = String(valor || '').split(',').map(s => s.trim()); return `<fieldset class="field multi"><legend>${rotulo}</legend>${opcoes.map(o => `<label class="check-field"><input type="checkbox" data-multi="${nome}" value="${esc(o)}" ${sel.includes(o) ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</fieldset>`; };
+const linha = (...cols) => `<div class="form-row">${cols.join('')}</div>`;
+const vazio = t => `<div class="empty">${t}</div>`;
+
+function showForm(titulo, corpo, onSubmit, rotulo = 'Salvar') {
+  $('form-content').innerHTML = `<div class="dialog-head"><h2 id="form-title">${titulo}</h2><button type="button" class="icon-button" data-action="close-form" aria-label="Fechar formulário">×</button></div><form class="form-body" id="active-form" novalidate>${corpo}<p class="form-error" role="alert"></p><div class="form-actions">${btn('Cancelar', 'close-form', 'secondary', 'type="button"')}<button type="submit" class="button">${rotulo}</button></div></form>`;
+  const f = $('active-form');
+  f.onsubmit = async e => {
+    e.preventDefault();
+    if (!f.reportValidity()) return;
+    const v = {};
+    new FormData(f).forEach((val, k) => { if (!f.querySelector(`[name="${k}"][data-bool]`)) v[k] = typeof val === 'string' ? val.trim() : val; });
+    f.querySelectorAll('[data-bool]').forEach(c => { v[c.name] = c.checked; });
+    const multi = {}; f.querySelectorAll('[data-multi]').forEach(c => { multi[c.dataset.multi] = multi[c.dataset.multi] || []; if (c.checked) multi[c.dataset.multi].push(c.value); });
+    Object.entries(multi).forEach(([k, arr]) => { v[k] = arr.join(', '); });
+    const b = f.querySelector('[type=submit]'), erro = f.querySelector('.form-error');
+    b.disabled = true; b.textContent = 'Salvando…'; erro.textContent = '';
+    try { const r = await onSubmit(v, f); if (r !== false) formDialog.close(); }
+    catch (err) { erro.textContent = err.message; }
+    finally { b.disabled = false; b.textContent = rotulo; }
+  };
+  if (!formDialog.open) formDialog.showModal();
+  const primeiro = f.querySelector('input:not([type=hidden]):not([type=checkbox]),select,textarea'); if (primeiro) primeiro.focus();
+}
+
+/* ---------- Navegação ---------- */
+function setPage(p) { page = NAV.some(n => n[0] === p) ? p : 'inicio'; query = ''; owner = ''; statusFilter = ''; $('global-search').value = ''; if (location.hash.slice(1) !== page) location.hash = page; render(); $('sidebar').classList.remove('open'); main.focus({ preventScroll: true }); }
+function render() {
+  if (!D) return;
+  const u = eu();
+  const abertas = T('TAREFAS').filter(t => t.STATUS === 'Aberta' && t.RESPONSAVEL === u.id).length;
+  $('navigation').innerHTML = NAV.map(([id, label, i]) => `<a href="#${id}" class="nav-link ${page === id ? 'active' : ''}" ${page === id ? 'aria-current="page"' : ''}>${icon(i)}<span>${label}</span>${id === 'tarefas' && abertas ? `<span class="count" title="Suas tarefas abertas">${abertas}</span>` : ''}</a>`).join('');
+  $('breadcrumb').textContent = page === 'inicio' ? 'Visão geral' : NAV.find(n => n[0] === page)[1];
+  $('profile').innerHTML = `<span class="avatar">${esc(iniciais(u.nome))}</span><div>${esc(u.nome)}<small>${esc(u.perfil || '')}</small></div>`;
+  $('top-avatar').textContent = iniciais(u.nome);
+  $('env-chip').innerHTML = `<span></span> ${esc(D.planilha || 'Planilha')}`;
+  $('date-label').textContent = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' });
+  main.innerHTML = ({ inicio: dashboard, prospeccao: prospeccao, clientes: clientesPage, agenda: agendaPage, tarefas: tarefasPage, demandas: demandasPage, equipe: equipePage, relatorios: relatoriosPage, configuracoes: configPage }[page])();
+}
+
+/* ---------- Início ---------- */
+function reunioes() {
+  return T('REUNIOES').filter(r => r.DATA_HORA_INICIO).map(r => ({ ...r, escola: escola(r.ID_ESCOLA) })).sort((a, b) => String(a.DATA_HORA_INICIO).localeCompare(b.DATA_HORA_INICIO));
+}
+function reuniaoLinha(r) {
+  return `<div class="agenda-item"><span class="time">${hora(r.DATA_HORA_INICIO) || '—'}</span><span class="event-line"></span><div><h3>${escolaBtn(r.escola)}</h3><p>${esc(nomeUsuario(r.RESPONSAVEL))}${r.STATUS && r.STATUS !== 'Agendada' ? ' · ' + esc(r.STATUS) : ''}</p>${badge(r.TIPO_REUNIAO || 'Reunião', /comercial/i.test(r.TIPO_REUNIAO) ? 'orange' : 'teal')}</div></div>`;
+}
+function dashboard() {
+  const u = eu(), h = hoje();
+  const hojeR = reunioes().filter(r => dia(r.DATA_HORA_INICIO) === h && r.STATUS !== 'Cancelada');
+  const minhas = T('TAREFAS').filter(t => t.STATUS === 'Aberta' && t.RESPONSAVEL === u.id);
+  const atrasadas = T('TAREFAS').filter(t => t.STATUS === 'Aberta' && t.PRAZO && dia(t.PRAZO) < h);
+  const tentHoje = leads().filter(o => o.PROXIMA_TENTATIVA && dia(o.PROXIMA_TENTATIVA) <= h);
+  const etapas = L('ETAPA_PROSPECCAO');
+  const maxE = Math.max(1, ...etapas.map(e => leads().filter(o => o.ETAPA === e).length));
+  const saud = new Date().getHours() < 12 ? 'Bom dia' : new Date().getHours() < 18 ? 'Boa tarde' : 'Boa noite';
+  return heading('CADA ESCOLA, UMA HISTÓRIA', `${saud}, ${esc(String(u.nome).split(' ')[0])}`, 'Vamos cuidar das conexões que fazem a educação acontecer.', btn('+ Nova escola', 'new-school'))
+    + `<section class="stats" aria-label="Indicadores">${[[leads().length, 'Escolas em prospecção', 'columns', `${etapas.length} etapas no funil`], [clientes().length, 'Escolas parceiras', 'building', `${T('CONTRATOS').filter(c => c.STATUS === 'Vigente').length} contratos vigentes`], [minhas.length, 'Suas tarefas abertas', 'check', `${atrasadas.length} atrasadas na equipe`], [hojeR.length, 'Reuniões hoje', 'calendar', 'Toda a equipe']].map(([v, l, i, n]) => `<div class="stat"><div class="stat-top">${l}<span class="stat-icon">${icon(i)}</span></div><div class="stat-value">${String(v).padStart(2, '0')}</div><div class="stat-note">${n}</div></div>`).join('')}</section>`
+    + `<div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>Um olhar para o funil</h2>${btn('Ver prospecção ↗', 'nav-prospeccao', 'text')}</div><div class="funnel">${etapas.map(e => { const c = leads().filter(o => o.ETAPA === e).length; return `<div class="funnel-row"><span>${esc(e)}</span><div class="bar-track"><div class="bar-fill" style="width:${c / maxE * 100}%"></div></div><strong>${pad(c)}</strong></div>`; }).join('')}</div><div class="panel-foot"><span>${leads().length} oportunidades em movimento</span><span>${perdidas().length} não avançaram</span></div></section>`
+    + `<section class="panel"><div class="panel-head"><h2>Na agenda de hoje</h2>${badge(new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' }), 'orange')}</div>${hojeR.length ? hojeR.map(reuniaoLinha).join('') : vazio('Hoje está livre para novas conversas.')}${btn('Abrir agenda completa →', 'nav-agenda', 'text')}</section>`
+    + `<section class="panel"><div class="panel-head"><h2>Tentativas para hoje</h2>${badge(tentHoje.length + ' escolas', tentHoje.length ? 'orange' : 'teal')}</div>${tentHoje.length ? `<div class="table-wrap"><table><thead><tr><th>ESCOLA</th><th>ETAPA</th><th>TENTATIVAS</th><th>PREVISTA</th></tr></thead><tbody>${tentHoje.slice(0, 8).map(o => `<tr><td>${escolaCell(escola(o.ID_ESCOLA))}</td><td>${badge(o.ETAPA || '—')}</td><td>${Number(o.TENTATIVAS_PRE_REUNIAO || 0)}/${maxTent()}</td><td>${curta(o.PROXIMA_TENTATIVA)}</td></tr>`).join('')}</tbody></table></div>` : vazio('Nenhuma tentativa prevista para hoje.')}</section>`
+    + `<section class="panel"><div class="panel-head"><h2>Suas tarefas</h2>${btn('Ver todas ↗', 'nav-tarefas', 'text')}</div>${minhas.length ? minhas.sort((a, b) => String(a.PRAZO || '9').localeCompare(b.PRAZO || '9')).slice(0, 6).map(t => `<div class="agenda-item"><span class="event-line"></span><div><h3>${esc(t.TITULO)}</h3><p>${escolaBtn(escola(t.ID_ESCOLA))} · prazo ${data(t.PRAZO)}</p>${t.PRAZO && dia(t.PRAZO) < h ? badge('Atrasada', 'red') : ''}</div></div>`).join('') : vazio('Nenhuma tarefa aberta para você. 🎉')}</section></div>`;
+}
+
+/* ---------- Prospecção ---------- */
+function filtrarOps(lista) {
+  const q = norm(query);
+  return lista.filter(o => {
+    const e = escola(o.ID_ESCOLA), c = principal(o.ID_ESCOLA);
+    if (!e) return false;
+    if (owner && o.RESPONSAVEL_ATUAL !== owner) return false;
+    return !q || norm([e.NOME_ESCOLA, e.CIDADE, e.UF, e.CNPJ, c && c.NOME, o.ORIGEM_LEAD].join(' ')).includes(q);
+  });
+}
+function filtros(comVisao, extra = '') {
+  return `<div class="toolbar"><input id="page-search" type="search" value="${esc(query)}" placeholder="Buscar escola, cidade, CNPJ ou contato" aria-label="Filtrar"><select id="owner-filter" aria-label="Filtrar por responsável">${optsUsuarios(owner, 'Toda a equipe')}</select><span class="spacer"></span>${extra}${comVisao ? `<div class="segmented" aria-label="Visualização"><button data-action="view-kanban" class="${view === 'kanban' ? 'active' : ''}" aria-pressed="${view === 'kanban'}">▥ Kanban</button><button data-action="view-list" class="${view === 'list' ? 'active' : ''}" aria-pressed="${view === 'list'}">☰ Lista</button></div>` : ''}</div>`;
+}
+function prospeccao() {
+  const etapas = L('ETAPA_PROSPECCAO');
+  const base = statusFilter === 'perdidas' ? perdidas() : leads();
+  const ops = filtrarOps(base);
+  const extra = `<select id="stage-filter" aria-label="Situação"><option value="">Em andamento</option><option value="perdidas" ${statusFilter === 'perdidas' ? 'selected' : ''}>Não avançaram</option></select>`;
+  const tabela = `<section class="panel table-wrap"><table><thead><tr><th>ESCOLA</th><th>ETAPA / STATUS</th><th>RESPONSÁVEL</th><th>TENTATIVAS</th><th>ÚLTIMA</th><th>PRÓXIMA</th></tr></thead><tbody>${ops.map(o => `<tr><td>${escolaCell(escola(o.ID_ESCOLA))}</td><td>${badge(o.STATUS === 'Perdido' ? 'Não avançou' : o.ETAPA || '—', o.STATUS === 'Perdido' ? 'red' : 'teal')}${o.STATUS === 'Perdido' ? `<br><small class="secondary-text">${esc(o.MOTIVO_PERDA)}</small>` : o.STATUS && o.STATUS !== 'Em andamento' ? ' ' + badge(o.STATUS, 'orange') : ''}</td><td>${esc(nomeUsuario(o.RESPONSAVEL_ATUAL))}</td><td>${Number(o.TENTATIVAS_PRE_REUNIAO || 0)} / ${maxTent()}</td><td>${curta(o.DATA_ULTIMA_TENTATIVA)}</td><td>${o.STATUS === 'Perdido' ? '—' : curta(o.PROXIMA_TENTATIVA)}</td></tr>`).join('')}</tbody></table>${!ops.length ? vazio(T('ESCOLAS').length ? 'Nenhuma escola encontrada para estes filtros.' : 'Ainda não há escolas cadastradas. Clique em “+ Nova escola” para começar.') : ''}</section>`;
+  const kanban = `<p class="visual-tip">Arraste os cards entre as etapas ou altere a etapa na ficha da escola.</p><div class="kanban">${etapas.map(et => { const col = ops.filter(o => o.ETAPA === et); return `<section class="kanban-column" data-stage="${esc(et)}"><div class="kanban-heading"><span><i class="stage-dot"></i>${esc(et)}</span>${badge(col.length, '')}</div>${col.map(cardLead).join('')}${!col.length ? vazio('Novas conversas<br>podem chegar aqui.') : ''}</section>`; }).join('')}</div>`;
+  return heading('DO PRIMEIRO OLÁ À PARCERIA', 'Prospecção', 'Acompanhe cada conversa e transforme interesse em conexão.', btn('+ Nova escola', 'new-school')) + filtros(statusFilter !== 'perdidas', extra) + (view === 'list' || statusFilter === 'perdidas' ? tabela : kanban);
+}
+function cardLead(o) {
+  const e = escola(o.ID_ESCOLA), c = principal(o.ID_ESCOLA), n = Number(o.TENTATIVAS_PRE_REUNIAO || 0), m = maxTent();
+  const atrasada = o.PROXIMA_TENTATIVA && dia(o.PROXIMA_TENTATIVA) < hoje();
+  return `<article class="lead-card" draggable="true" data-id="${esc(o.ID_OPORTUNIDADE)}"><div class="card-head"><div><h3>${escolaBtn(e)}</h3><p class="location">${esc(e.CIDADE || '')}${e.UF ? ' · ' + esc(e.UF) : ''}</p></div>${o.STATUS && o.STATUS !== 'Em andamento' ? badge(o.STATUS, 'orange') : atrasada ? badge('Atrasada', 'red') : ''}</div>${o.ORIGEM_LEAD ? badge(o.ORIGEM_LEAD, '') : ''}<div class="card-info">${c ? `<strong>${esc(c.NOME)}</strong><br>${esc(c.CARGO_FUNCAO || '')}` : '<span class="secondary-text">Sem contato cadastrado</span>'}</div><div class="attempts" aria-label="${n} de ${m} tentativas">${Array.from({ length: m }, (_, i) => `<i class="${i < n ? 'filled' : ''}"></i>`).join('')}</div><div class="card-info">${n}/${m} tentativas · última: ${curta(o.DATA_ULTIMA_TENTATIVA)}<br>Próxima: <strong>${curta(o.PROXIMA_TENTATIVA)}</strong></div><div class="card-bottom"><span style="display:flex;align-items:center;gap:7px"><span class="avatar small">${esc(iniciais(nomeUsuario(o.RESPONSAVEL_ATUAL)))}</span>${esc(String(nomeUsuario(o.RESPONSAVEL_ATUAL)).split(' ')[0])}</span>${btn('Abrir →', 'open-school', 'text', `data-id="${esc(o.ID_ESCOLA)}"`)}</div></article>`;
+}
+
+/* ---------- Clientes ---------- */
+function clientesPage() {
+  const q = norm(query);
+  const lista = clientes().filter(e => {
+    const anos = T('ANOS_LETIVOS').filter(a => a.ID_ESCOLA === e.ID_ESCOLA);
+    if (owner && !anos.some(a => a.RESPONSAVEL_COMERCIAL === owner || a.RESPONSAVEL_PEDAGOGICO === owner)) return false;
+    return !q || norm([e.NOME_ESCOLA, e.CIDADE, e.UF, e.CNPJ, (principal(e.ID_ESCOLA) || {}).NOME].join(' ')).includes(q);
+  });
+  return heading('PARCERIAS QUE CONTINUAM', 'Clientes', 'Uma visão completa de cada escola, do contrato à renovação.') + filtros(false)
+    + `<div class="section-grid">${lista.map(e => {
+      const c = contratosDe(e.ID_ESCOLA).slice(-1)[0], ks = c ? kitsDoContrato(c.ID_CONTRATO) : [], ctc = c && T('CONTRATACOES').find(x => x.ID_CONTRATACAO === c.ID_CONTRATACAO);
+      const passos = ctc ? ETAPAS_CONTRATACAO.filter(([k]) => ctc[k]).length : 0, p = principal(e.ID_ESCOLA);
+      const ano = T('ANOS_LETIVOS').filter(a => a.ID_ESCOLA === e.ID_ESCOLA).slice(-1)[0];
+      const ren = T('RENOVACOES').filter(r => r.ID_ESCOLA === e.ID_ESCOLA).slice(-1)[0];
+      return `<article class="panel client-card"><span class="school-icon">${esc(iniciais(e.NOME_ESCOLA))}</span><h2>${escolaBtn(e)}</h2><p>${esc(e.CIDADE || '')}${e.UF ? ' · ' + esc(e.UF) : ''}${e.FAIXA_ALUNOS ? ' · ' + esc(e.FAIXA_ALUNOS) + ' alunos' : ''}</p><div class="client-meta">${badge(c ? c.STATUS : 'Sem contrato')}${c ? badge(`Anos ${c.ANO_LETIVO_INICIAL}–${c.ANO_LETIVO_FINAL}`, 'orange') : ''}${ren ? badge('Renovação: ' + ren.STATUS, ren.STATUS === 'Renovada' ? 'teal' : 'purple') : ''}</div><div class="card-info">Comercial: <strong>${esc(nomeUsuario(ano && ano.RESPONSAVEL_COMERCIAL))}</strong><br>Pedagógico: <strong>${esc(nomeUsuario(ano && ano.RESPONSAVEL_PEDAGOGICO))}</strong><br>Contato: <strong>${esc(p ? p.NOME : '—')}</strong></div><small>Contratação <strong>${passos}/${ETAPAS_CONTRATACAO.length}</strong></small><div class="progress"><span style="width:${passos / ETAPAS_CONTRATACAO.length * 100}%"></span></div><div class="client-footer"><span>${ks.length} itens · ${dinheiro(valorKits(ks))}</span>${btn('Cliente 360° →', 'open-school', 'text', `data-id="${esc(e.ID_ESCOLA)}"`)}</div></article>`;
+    }).join('')}</div>${!lista.length ? vazio('Nenhum cliente ainda. Quando você registrar uma contratação, a escola aparece aqui.') : ''}`;
+}
+
+/* ---------- Ficha da escola ---------- */
+function abrirEscola(id, aba = 0) { detailId = id; detailTab = aba; renderDetail(); if (!detail.open) detail.showModal(); }
+function renderDetail() {
+  const e = escola(detailId); if (!e) { if (detail.open) detail.close(); return; }
+  const o = oportunidadeDe(e.ID_ESCOLA), cli = e.STATUS_GERAL === 'Cliente';
+  $('detail-content').innerHTML = `<div class="dialog-head"><div><div class="eyebrow">${cli ? 'CLIENTE 360°' : 'FICHA DA ESCOLA'} · ${esc(e.ID_ESCOLA)}</div><h2 id="detail-title">${esc(e.NOME_ESCOLA)}</h2><p>${esc(e.CIDADE || '')}${e.UF ? ' · ' + esc(e.UF) : ''}${o ? ' · ' + esc(nomeUsuario(o.RESPONSAVEL_ATUAL)) : ''}</p><div class="detail-summary">${badge(e.STATUS_GERAL || '—', e.STATUS_GERAL === 'Não avançou' ? 'red' : 'teal')}${o && !encerrada(o) ? badge(o.ETAPA || '—', 'orange') : ''}${e.FAIXA_ALUNOS ? badge(e.FAIXA_ALUNOS + ' alunos', '') : ''}${e.SEGMENTOS_ATUAIS ? badge(e.SEGMENTOS_ATUAIS, '') : ''}</div></div><button class="icon-button" data-action="close-detail" aria-label="Fechar ficha">×</button></div><div class="detail-tabs" role="tablist" aria-label="Seções da ficha">${TABS.map((t, i) => `<button role="tab" id="tab-${i}" aria-selected="${detailTab === i}" aria-controls="detail-panel" tabindex="${detailTab === i ? 0 : -1}" data-action="detail-tab" data-tab="${i}" class="${detailTab === i ? 'active' : ''}">${t}</button>`).join('')}</div><div class="dialog-body" role="tabpanel" id="detail-panel" aria-labelledby="tab-${detailTab}">${corpoFicha(e, o)}</div>`;
+}
+const info = (rot, val) => `<div><dt>${rot}</dt><dd>${val || '—'}</dd></div>`;
+function corpoFicha(e, o) {
+  const id = e.ID_ESCOLA;
+  switch (detailTab) {
+    case 0: {
+      const c = principal(id);
+      return `<div class="detail-grid"><section class="info-box"><h3>Dados da escola</h3><dl class="info-list">${info('Razão social', esc(e.RAZAO_SOCIAL))}${info('CNPJ', esc(e.CNPJ))}${info('Endereço', esc(e.ENDERECO))}${info('Data de abertura', data(e.DATA_ABERTURA))}${info('Faixa de alunos', esc(e.FAIXA_ALUNOS))}${info('Segmentos atuais', esc(e.SEGMENTOS_ATUAIS))}${info('Contato principal', c ? `${esc(c.NOME)}<br>${esc(c.CARGO_FUNCAO || '')}<br>${esc(c.TELEFONE || '')} ${esc(c.EMAIL || '')}` : '')}</dl></section>`
+        + (o ? `<section class="info-box"><h3>Oportunidade ${esc(o.ID_OPORTUNIDADE)}</h3><dl class="info-list">${info('Situação', esc(o.STATUS === 'Perdido' ? 'Não avançou' : o.STATUS))}${info('Etapa', esc(o.ETAPA))}${info('Responsável', esc(nomeUsuario(o.RESPONSAVEL_ATUAL)))}${info('Entrada', data(o.DATA_ENTRADA))}${info('Origem do lead', esc(o.ORIGEM_LEAD))}${info('Como conheceu', esc(o.COMO_CONHECEU))}${info('Sistema atual', esc(o.SISTEMA_ATUAL))}${info('Cargo do lead', esc(o.CARGO_LEAD))}${info('Desafio educacional', esc(o.DESAFIO_EDUCACIONAL))}${info('Tentativas', `${Number(o.TENTATIVAS_PRE_REUNIAO || 0)} de ${maxTent()} · próxima ${data(o.PROXIMA_TENTATIVA)}`)}${o.STATUS === 'Perdido' ? info('Motivo', esc(o.MOTIVO_PERDA) + ' · ' + data(o.DATA_ENCERRAMENTO)) : ''}</dl></section>` : `<section class="info-box"><h3>Oportunidade</h3>${vazio('Sem oportunidade registrada.')}</section>`)
+        + `</div>${o && o.OBSERVACOES ? `<div class="detail-note">${esc(o.OBSERVACOES)}</div>` : ''}<div class="inline-actions">${btn('Editar escola', 'edit-school', 'secondary')}${o ? btn('Editar oportunidade', 'edit-opp', 'secondary') : ''}${o && !encerrada(o) ? btn('Mover etapa', 'move-stage', 'secondary') + btn('Registrar tentativa', 'new-attempt', 'secondary') + btn('Não avançou', 'close-opp', 'secondary danger') : ''}${o && o.STATUS === 'Perdido' ? btn('Reabrir oportunidade', 'reopen', 'secondary') : ''}${btn('Criar tarefa', 'new-task', 'secondary', `data-id="${esc(id)}"`)}</div>`;
+    }
+    case 1: {
+      const cs = contatosDe(id);
+      return `<div class="inline-actions">${btn('+ Novo contato', 'new-contact')}</div>` + (cs.length ? `<div class="table-wrap"><table><thead><tr><th>NOME</th><th>CARGO</th><th>TELEFONE / E-MAIL</th><th>SEGMENTO</th><th></th></tr></thead><tbody>${cs.map(c => `<tr class="${sim(c.ATIVO) || c.ATIVO === '' ? '' : 'inactive'}"><td><strong>${esc(c.NOME)}</strong> ${sim(c.CONTATO_PRINCIPAL) ? badge('Principal') : ''}${sim(c.ATIVO) || c.ATIVO === '' ? '' : badge('Inativo', 'red')}</td><td>${esc(c.CARGO_FUNCAO)}</td><td>${esc(c.TELEFONE)}${c.TELEFONE ? ` <a class="text-link" href="https://wa.me/${esc(String(c.TELEFONE).replace(/\D/g, '').replace(/^(?!55)/, '55'))}" target="_blank" rel="noopener">WhatsApp</a>` : ''}<br>${c.EMAIL ? `<a class="text-link" href="mailto:${esc(c.EMAIL)}">${esc(c.EMAIL)}</a>` : ''}</td><td>${esc(c.SEGMENTO_RELACIONADO)}</td><td><button class="icon-button" data-action="edit-contact" data-ref="${esc(c.ID_CONTATO)}" aria-label="Editar contato">✎</button></td></tr>`).join('')}</tbody></table></div>` : vazio('Nenhum contato cadastrado.'));
+    }
+    case 2: {
+      const at = T('ATIVIDADES').filter(a => a.ID_ESCOLA === id).sort((a, b) => String(b.DATA_HORA).localeCompare(a.DATA_HORA));
+      return `<div class="inline-actions">${o && !encerrada(o) ? btn('+ Registrar tentativa', 'new-attempt') : ''}${btn('+ Anotação / atividade', 'new-activity', 'secondary')}</div>${o && !encerrada(o) ? `<div class="detail-note">Tentativas antes da reunião pedagógica: <strong>${Number(o.TENTATIVAS_PRE_REUNIAO || 0)} de ${maxTent()}</strong>. Intervalo padrão: ${cfg('INTERVALO_TENTATIVAS_PRE_DIAS', 7)} dias.</div>` : ''}` + linhaTempo(at.map(a => ({ quando: a.DATA_HORA, quem: nomeUsuario(a.USUARIO), tipo: a.TIPO_ATIVIDADE + (a.CANAL ? ' · ' + a.CANAL : ''), texto: [a.RESULTADO && 'Resultado: ' + a.RESULTADO, a.DESCRICAO, a.PROXIMA_ACAO && `Próxima ação: ${a.PROXIMA_ACAO} (${data(a.PRAZO_PROXIMA_ACAO)})`].filter(Boolean).join('\n') })));
+    }
+    case 3: {
+      const rs = reunioes().filter(r => r.ID_ESCOLA === id).reverse();
+      return `<div class="inline-actions">${btn('+ Agendar reunião', 'new-meeting', '', `data-id="${esc(id)}"`)}</div>` + (rs.length ? rs.map(r => `<div class="agenda-item"><span class="time">${curta(r.DATA_HORA_INICIO)}<br>${hora(r.DATA_HORA_INICIO)}</span><span class="event-line"></span><div style="flex:1"><h3>${esc(r.TIPO_REUNIAO || 'Reunião')} ${badge(r.STATUS || 'Agendada', r.STATUS === 'Realizada' ? 'teal' : r.STATUS === 'Cancelada' || r.STATUS === 'Não compareceu' ? 'red' : 'orange')}</h3><p>${esc(nomeUsuario(r.RESPONSAVEL))}${r.LINK_REUNIAO ? ` · <a class="text-link" href="${esc(r.LINK_REUNIAO)}" target="_blank" rel="noopener">link da reunião</a>` : ''}</p>${r.OBSERVACOES ? `<p>${esc(r.OBSERVACOES)}</p>` : ''}</div><div class="inline-actions">${btn('Editar / desfecho', 'edit-meeting', 'text', `data-ref="${esc(r.ID_REUNIAO)}"`)}<a class="button text" href="${calendarLink(r)}" target="_blank" rel="noopener">Google Agenda ↗</a></div></div>`).join('') : vazio('Nenhuma reunião registrada.'));
+    }
+    case 4: {
+      const ctcs = T('CONTRATACOES').filter(c => c.ID_ESCOLA === id);
+      return `<div class="inline-actions">${o && !encerrada(o) ? btn('Registrar contratação (ganho)', 'new-contract') : ''}${o && !encerrada(o) && o.ETAPA === L('ETAPA_PROSPECCAO').slice(-1)[0] ? btn('Status pós-comercial', 'edit-opp', 'secondary') : ''}${e.STATUS_GERAL === 'Cliente' ? btn('Nova contratação', 'new-contract', 'secondary') : ''}</div>${o && !encerrada(o) ? `<div class="detail-note">Etapa atual: <strong>${esc(o.ETAPA)}</strong>${o.STATUS && o.STATUS !== 'Em andamento' ? ` · status pós-comercial: <strong>${esc(o.STATUS)}</strong>` : ''}. Ao registrar a contratação, a escola passa para Clientes e são criados o contrato, o ano letivo e os kits.</div>` : ''}`
+        + (ctcs.length ? ctcs.map(c => { const feitos = ETAPAS_CONTRATACAO.filter(([k]) => c[k]).length; return `<section class="info-box"><h3>Contratação ${esc(c.ID_CONTRATACAO)} ${badge(c.STATUS || '—')}</h3><p class="secondary-text">Ganho em ${data(c.DATA_GANHO)} · ano letivo inicial ${esc(c.ANO_LETIVO_INICIAL)} · ${esc(c.DURACAO_ANOS)} ano(s) · ${esc(nomeUsuario(c.RESPONSAVEL))}</p><small>Etapas concluídas <strong>${feitos}/${ETAPAS_CONTRATACAO.length}</strong></small><div class="progress"><span style="width:${feitos / ETAPAS_CONTRATACAO.length * 100}%"></span></div><ul class="checklist">${ETAPAS_CONTRATACAO.map(([k, r]) => `<li class="${c[k] ? 'done' : ''}">${c[k] ? '✓' : '○'} ${r}${c[k] ? ' · ' + data(c[k]) : ''}</li>`).join('')}</ul>${c.OBSERVACOES ? `<p>${esc(c.OBSERVACOES)}</p>` : ''}<div class="inline-actions">${btn('Atualizar etapas', 'edit-hiring', 'secondary', `data-ref="${esc(c.ID_CONTRATACAO)}"`)}</div></section>`; }).join('') : vazio('Nenhuma contratação registrada ainda.'));
+    }
+    case 5: {
+      const cs = contratosDe(id), docs = T('DOCUMENTOS').filter(d => d.ID_ESCOLA === id);
+      return (cs.length ? cs.map(c => {
+        const ks = kitsDoContrato(c.ID_CONTRATO), anos = T('ANOS_LETIVOS').filter(a => a.ID_CONTRATO === c.ID_CONTRATO), rens = T('RENOVACOES').filter(r => r.ID_CONTRATO === c.ID_CONTRATO);
+        return `<section class="info-box"><h3>Contrato ${esc(c.NUMERO_CONTRATO || c.ID_CONTRATO)} ${badge(c.STATUS || '—', c.STATUS === 'Vigente' ? 'teal' : 'red')}</h3><dl class="info-list">${info('Anos letivos', `${esc(c.ANO_LETIVO_INICIAL)}–${esc(c.ANO_LETIVO_FINAL)}`)}${info('Assinatura', data(c.DATA_ASSINATURA))}${info('Vigência', c.INICIO_VIGENCIA || c.FIM_VIGENCIA ? `${data(c.INICIO_VIGENCIA)} a ${data(c.FIM_VIGENCIA)}` : '')}${info('Comercialização', esc(c.FORMA_COMERCIALIZACAO))}${info('Desconto', esc(c.PERCENTUAL_DESCONTO))}${info('Documento', c.LINK_DOCUMENTO_ASSINADO ? `<a class="text-link" href="${esc(c.LINK_DOCUMENTO_ASSINADO)}" target="_blank" rel="noopener">abrir ↗</a>` : '')}${c.DATA_RESCISAO ? info('Rescisão', data(c.DATA_RESCISAO) + ' · ' + esc(c.MOTIVO_RESCISAO)) : ''}</dl>
+          <h4>Anos letivos</h4>${anos.length ? `<div class="table-wrap"><table><thead><tr><th>ANO</th><th>STATUS</th><th>COMERCIAL</th><th>PEDAGÓGICO</th><th></th></tr></thead><tbody>${anos.map(a => `<tr><td>${esc(a.ANO)}</td><td>${esc(a.STATUS)}</td><td>${esc(nomeUsuario(a.RESPONSAVEL_COMERCIAL))}</td><td>${esc(nomeUsuario(a.RESPONSAVEL_PEDAGOGICO))}</td><td><button class="icon-button" data-action="edit-year" data-ref="${esc(a.ID_ANO_LETIVO)}" aria-label="Editar ano letivo">✎</button></td></tr>`).join('')}</tbody></table></div>` : vazio('Sem anos letivos.')}
+          <h4>Kits contratados</h4>${ks.length ? `<div class="table-wrap"><table><thead><tr><th>ANO</th><th>SEGMENTO</th><th>FAIXA / ANO</th><th>PRODUTO</th><th>QTD.</th><th>VALOR REF.</th><th></th></tr></thead><tbody>${ks.map(k => `<tr><td>${esc(k.ANO_LETIVO)}</td><td>${esc(k.SEGMENTO)}</td><td>${esc(k.FAIXA_ETARIA_ANO)}</td><td>${esc(k.PRODUTO_KIT)}</td><td>${esc(k.QUANTIDADE_CONTRATADA)}${k.QUANTIDADE_PREVISTA !== '' && k.QUANTIDADE_PREVISTA !== undefined ? ` <small class="secondary-text">(prev. ${esc(k.QUANTIDADE_PREVISTA)})</small>` : ''}</td><td>${k.VALOR_REFERENCIA !== '' ? dinheiro(k.VALOR_REFERENCIA) : '—'}</td><td><button class="icon-button" data-action="edit-kit" data-ref="${esc(k.ID_ITEM)}" aria-label="Editar item">✎</button></td></tr>`).join('')}</tbody></table></div><p class="secondary-text">Total de referência: <strong>${dinheiro(valorKits(ks))}</strong></p>` : vazio('Nenhum kit registrado.')}
+          <h4>Renovações</h4>${rens.length ? rens.map(r => `<div class="agenda-item"><span class="event-line"></span><div style="flex:1"><h3>Ano letivo ${esc(r.ANO_LETIVO_DESTINO)} ${badge(r.STATUS || '—', r.STATUS === 'Renovada' ? 'teal' : r.STATUS === 'Não renovada' ? 'red' : 'orange')}</h3><p>${esc(nomeUsuario(r.RESPONSAVEL))} · aberta em ${data(r.DATA_ABERTURA)}${r.RESCISAO_SOLICITADA === true ? ' · rescisão solicitada' : ''}</p></div>${btn('Editar', 'edit-renewal', 'text', `data-ref="${esc(r.ID_RENOVACAO)}"`)}</div>`).join('') : vazio('Nenhuma renovação aberta.')}
+          <div class="inline-actions">${btn('Editar contrato', 'edit-contract', 'secondary', `data-ref="${esc(c.ID_CONTRATO)}"`)}${btn('+ Kit', 'new-kit', 'secondary', `data-ref="${esc(c.ID_CONTRATO)}"`)}${btn('+ Ano letivo', 'new-year', 'secondary', `data-ref="${esc(c.ID_CONTRATO)}"`)}${btn('+ Renovação', 'new-renewal', 'secondary', `data-ref="${esc(c.ID_CONTRATO)}"`)}</div></section>`;
+      }).join('') : vazio('Nenhum contrato. Registre a contratação na aba Comercial.'))
+        + `<section class="info-box"><h3>Documentos (links)</h3>${docs.length ? `<div class="table-wrap"><table><thead><tr><th>TIPO</th><th>ARQUIVO</th><th>STATUS</th><th>REGISTRO</th><th></th></tr></thead><tbody>${docs.map(d => `<tr><td>${esc(d.TIPO_DOCUMENTO)}</td><td>${d.LINK_ARQUIVO ? `<a class="text-link" href="${esc(d.LINK_ARQUIVO)}" target="_blank" rel="noopener">${esc(d.NOME_ARQUIVO || 'abrir')} ↗</a>` : esc(d.NOME_ARQUIVO)}</td><td>${esc(d.STATUS_DOCUMENTO)}</td><td>${data(d.DATA_REGISTRO)} · ${esc(nomeUsuario(d.USUARIO))}</td><td><button class="icon-button" data-action="edit-doc" data-ref="${esc(d.ID_DOCUMENTO)}" aria-label="Editar documento">✎</button></td></tr>`).join('')}</tbody></table></div>` : vazio('Nenhum documento registrado.')}<div class="inline-actions">${btn('+ Documento', 'new-doc', 'secondary')}</div><p class="visual-tip">Guarde o arquivo no Google Drive e cole aqui o link de compartilhamento.</p></section>`;
+    }
+    case 6: {
+      const ps = T('PEDAGOGICO').filter(p => p.ID_ESCOLA === id).sort((a, b) => String(b.DATA_HORA).localeCompare(a.DATA_HORA));
+      return `<div class="inline-actions">${btn('+ Registro pedagógico', 'new-ped')}</div>` + (ps.length ? ps.map(p => `<div class="timeline-item"><small>${dataHora(p.DATA_HORA)} · ${esc(nomeUsuario(p.RESPONSAVEL))}<span class="activity-type">${esc(p.TIPO_ATENDIMENTO)}</span> ${badge(p.STATUS || '—', p.STATUS === 'Realizado' ? 'teal' : 'orange')}</small><p>${esc(p.OBSERVACOES)}</p>${p.PARTICIPANTES ? `<p class="secondary-text">Participantes: ${esc(p.PARTICIPANTES)}</p>` : ''}${p.PROXIMA_ACAO ? `<p class="secondary-text">Próxima ação: ${esc(p.PROXIMA_ACAO)} (${data(p.PRAZO_PROXIMA_ACAO)})</p>` : ''}${btn('Editar', 'edit-ped', 'text', `data-ref="${esc(p.ID_PEDAGOGICO)}"`)}</div>`).join('') : vazio('Nenhum registro pedagógico.'));
+    }
+    case 7: {
+      const ds = T('DEMANDAS').filter(d => d.ID_ESCOLA === id);
+      return `<div class="inline-actions">${btn('+ Nova demanda', 'new-demand', '', `data-id="${esc(id)}"`)}</div>` + (ds.length ? ds.map(cardDemanda).join('') : vazio('Nenhuma demanda para esta escola.'));
+    }
+    case 8: {
+      const hs = T('HISTORICO').filter(h => h.ID_ESCOLA === id).reverse();
+      return hs.length ? `<div class="table-wrap"><table><thead><tr><th>QUANDO</th><th>QUEM</th><th>O QUÊ</th><th>DETALHE</th></tr></thead><tbody>${hs.map(h => `<tr><td>${dataHora(h.DATA_HORA)}</td><td>${esc(nomeUsuario(h.USUARIO))}</td><td>${esc(h.ACAO)} · ${esc(h.ENTIDADE)}</td><td>${h.CAMPO_ALTERADO ? `${esc(h.CAMPO_ALTERADO)}: <s>${esc(h.VALOR_ANTERIOR) || '∅'}</s> → ${esc(h.VALOR_NOVO) || '∅'}` : esc(h.ID_ENTIDADE)}</td></tr>`).join('')}</tbody></table></div><p class="visual-tip">A ficha mostra os 400 registros de histórico mais recentes do CRM. O histórico completo fica na aba HISTORICO da planilha.</p>` : vazio('Sem histórico ainda.');
+    }
+  }
+  return '';
+}
+function linhaTempo(itens) {
+  return itens.length ? `<div class="timeline">${itens.map(a => `<div class="timeline-item"><small>${dataHora(a.quando)} · ${esc(a.quem)}<span class="activity-type">${esc(a.tipo)}</span></small><p style="white-space:pre-line">${esc(a.texto)}</p></div>`).join('')}</div>` : vazio('Nenhum registro nesta seção.');
+}
+function calendarLink(r) {
+  const e = escola(r.ID_ESCOLA) || {}, f = v => String(v || '').replace(/[-:]/g, '') + (String(v).length > 10 ? '00' : '');
+  const ini = r.DATA_HORA_INICIO, fim = r.DATA_HORA_FIM || ini;
+  return 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: `${r.TIPO_REUNIAO || 'Reunião'} · ${e.NOME_ESCOLA || ''}`, dates: `${f(ini)}/${f(fim)}`, ctz: 'America/Sao_Paulo', details: `${r.OBSERVACOES || ''}\nCRM Alicerces · ${r.ID_REUNIAO}`, location: r.LINK_REUNIAO || '' });
+}
+
+/* ---------- Agenda ---------- */
+function agendaPage() {
+  const first = new Date(ano, mes, 1), last = new Date(ano, mes + 1, 0), offset = (first.getDay() + 6) % 7, cells = Math.ceil((offset + last.getDate()) / 7) * 7;
+  const prefixo = `${ano}-${pad(mes + 1)}`, ev = reunioes().filter(r => r.STATUS !== 'Cancelada' && (!owner || r.RESPONSAVEL === owner));
+  const doMes = ev.filter(r => String(r.DATA_HORA_INICIO).startsWith(prefixo));
+  return heading('TEMPO PARA BOAS CONVERSAS', 'Agenda', 'Reuniões de prospecção, implantação e acompanhamento.', btn('+ Agendar reunião', 'new-meeting'))
+    + `<div class="toolbar"><select id="owner-filter" aria-label="Responsável">${optsUsuarios(owner, 'Toda a equipe')}</select></div><div class="calendar-shell"><section class="panel"><div class="panel-head"><h2 style="text-transform:capitalize">${first.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</h2><div class="month-nav"><button class="icon-button" data-action="prev-month" aria-label="Mês anterior">‹</button>${btn('Hoje', 'today-month', 'secondary')}<button class="icon-button" data-action="next-month" aria-label="Próximo mês">›</button></div></div><div class="calendar">${['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'].map(d => `<div class="weekday">${d}</div>`).join('')}${Array.from({ length: cells }, (_, i) => { const d = i - offset + 1, ok = d > 0 && d <= last.getDate(), iso = `${prefixo}-${pad(d)}`; return `<div class="calendar-day ${ok ? '' : 'dim'} ${iso === hoje() ? 'today' : ''}">${ok ? `<span class="day-num">${d}</span>${ev.filter(r => dia(r.DATA_HORA_INICIO) === iso).map(r => `<button class="calendar-event ${/comercial/i.test(r.TIPO_REUNIAO) ? 'comercial' : ''}" data-action="event-detail" data-id="${esc(r.ID_ESCOLA)}" title="${esc(hora(r.DATA_HORA_INICIO) + ' · ' + ((r.escola || {}).NOME_ESCOLA || '') + ' · ' + r.TIPO_REUNIAO)}">${esc(hora(r.DATA_HORA_INICIO))} ${esc((r.escola || {}).NOME_ESCOLA || '')}</button>`).join('')}` : ''}</div>`; }).join('')}</div></section><aside><section class="panel"><div class="panel-head"><h2>Neste mês</h2>${badge(doMes.length + ' reuniões', 'orange')}</div>${doMes.map(r => `<small style="color:var(--muted)">${data(r.DATA_HORA_INICIO)}</small>${reuniaoLinha(r)}`).join('') || vazio('Nenhuma reunião neste mês.')}</section><div class="notice" style="margin-top:18px">Para levar a reunião ao Google Agenda, abra a ficha da escola → Reuniões → “Google Agenda ↗”. Você revisa e salva no Google.</div></aside></div>`;
+}
+
+/* ---------- Tarefas ---------- */
+function tarefasPage() {
+  const h = hoje(), q = norm(query);
+  const lista = T('TAREFAS').filter(t => (!q || norm(t.TITULO + ' ' + ((escola(t.ID_ESCOLA) || {}).NOME_ESCOLA || '')).includes(q)) && (!owner || t.RESPONSAVEL === owner) && (statusFilter === 'done' ? t.STATUS === 'Concluída' : statusFilter === 'late' ? t.STATUS === 'Aberta' && t.PRAZO && dia(t.PRAZO) < h : statusFilter === 'all' ? true : t.STATUS === 'Aberta'))
+    .sort((a, b) => String(a.PRAZO || '9999').localeCompare(b.PRAZO || '9999'));
+  return heading('UM PASSO DE CADA VEZ', 'Tarefas', 'Organize os próximos passos e mantenha os combinados em dia.', btn('+ Nova tarefa', 'new-task'))
+    + `<div class="toolbar"><input type="search" id="page-search" placeholder="Buscar tarefa ou escola" value="${esc(query)}" aria-label="Buscar tarefa"><select id="owner-filter" aria-label="Responsável">${optsUsuarios(owner, 'Toda a equipe')}</select><select id="stage-filter" aria-label="Status">${[['', 'Em aberto'], ['late', 'Atrasadas'], ['done', 'Concluídas'], ['all', 'Todas']].map(([v, l]) => `<option value="${v}" ${statusFilter === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>`
+    + `<section class="panel">${lista.map(t => { const late = t.STATUS === 'Aberta' && t.PRAZO && dia(t.PRAZO) < h; return `<div class="task-row ${t.STATUS === 'Concluída' ? 'done' : ''}"><input type="checkbox" data-task="${esc(t.ID_TAREFA)}" aria-label="Concluir ${esc(t.TITULO)}" ${t.STATUS === 'Concluída' ? 'checked' : ''} ${t.STATUS === 'Cancelada' ? 'disabled' : ''}><div class="task-text"><h3>${esc(t.TITULO)}</h3><p>${escolaBtn(escola(t.ID_ESCOLA))} · ${esc(nomeUsuario(t.RESPONSAVEL))}${t.TIPO ? ' · ' + esc(t.TIPO) : ''}</p></div>${badge(t.STATUS === 'Aberta' ? (late ? 'Atrasada' : t.PRIORIDADE || 'Normal') : t.STATUS, t.STATUS === 'Concluída' ? 'teal' : late ? 'red' : t.PRIORIDADE === 'Alta' ? 'orange' : '')}<small>${data(t.PRAZO)}</small><button class="icon-button" data-action="edit-task" data-ref="${esc(t.ID_TAREFA)}" aria-label="Editar tarefa">✎</button></div>`; }).join('') || vazio('Nenhuma tarefa para estes filtros.')}</section>`;
+}
+
+/* ---------- Demandas ---------- */
+const comentariosDe = id => T('MENSAGENS').filter(m => m.ID_DEMANDA_RELACIONADA === id);
+function cardDemanda(d) {
+  return `<article class="panel demand-card"><div class="card-head">${badge(d.STATUS || 'Aberta', d.STATUS === 'Concluída' ? 'teal' : 'orange')}${badge(d.PRIORIDADE || 'Normal', d.PRIORIDADE === 'Alta' ? 'red' : '')}${d.AREA ? badge(d.AREA, '') : ''}</div><h2>${esc(String(d.DESCRICAO || '').slice(0, 80))}${String(d.DESCRICAO || '').length > 80 ? '…' : ''}</h2><p>${escolaBtn(escola(d.ID_ESCOLA))}</p><p class="secondary-text">De ${esc(nomeUsuario(d.SOLICITANTE))} para ${esc(nomeUsuario(d.RESPONSAVEL))}${d.PRAZO ? ' · prazo ' + data(d.PRAZO) : ''}</p><div class="card-bottom"><span>${comentariosDe(d.ID_DEMANDA).length} comentários</span>${btn('Abrir →', 'open-demand', 'text', `data-ref="${esc(d.ID_DEMANDA)}"`)}</div></article>`;
+}
+function demandasPage() {
+  const q = norm(query);
+  const lista = T('DEMANDAS').filter(d => (!q || norm(d.DESCRICAO + ' ' + ((escola(d.ID_ESCOLA) || {}).NOME_ESCOLA || '') + ' ' + d.AREA).includes(q)) && (!owner || d.RESPONSAVEL === owner || d.SOLICITANTE === owner) && (statusFilter === 'all' ? true : statusFilter ? d.STATUS === statusFilter : d.STATUS !== 'Concluída')).reverse();
+  return heading('A EQUIPE EM SINTONIA', 'Demandas internas', 'Compartilhe necessidades, mencione pessoas e acompanhe soluções.', btn('+ Nova demanda', 'new-demand'))
+    + `<div class="toolbar"><input id="page-search" type="search" placeholder="Buscar demanda" value="${esc(query)}" aria-label="Buscar demanda"><select id="owner-filter" aria-label="Pessoa">${optsUsuarios(owner, 'Toda a equipe')}</select><select id="stage-filter" aria-label="Status"><option value="">Em aberto</option>${ST.demanda.map(v => `<option ${statusFilter === v ? 'selected' : ''}>${v}</option>`).join('')}<option value="all" ${statusFilter === 'all' ? 'selected' : ''}>Todas</option></select></div><div class="section-grid">${lista.map(cardDemanda).join('')}</div>${!lista.length ? vazio('Nenhuma demanda encontrada.') : ''}`;
+}
+function textoMencao(t) {
+  let h = esc(t);
+  ativos().forEach(u => { const n = esc('@' + u.NOME); h = h.split(n).join(`<span class="mention">${n}</span>`); });
+  return h;
+}
+function abrirDemanda(id) {
+  const d = T('DEMANDAS').find(x => x.ID_DEMANDA === id); if (!d) return;
+  const cs = comentariosDe(id);
+  showForm(`Demanda ${esc(d.ID_DEMANDA)}`, `<div class="notice"><strong>${esc((escola(d.ID_ESCOLA) || {}).NOME_ESCOLA || 'Geral')}</strong> · ${esc(d.AREA)}<br>${esc(d.DESCRICAO)}<br><small>Aberta por ${esc(nomeUsuario(d.SOLICITANTE))} em ${dataHora(d.DATA_ABERTURA)}</small></div>`
+    + linha(lista('Status', 'STATUS', opts(ST.demanda, d.STATUS, false)), lista('Responsável', 'RESPONSAVEL', optsUsuarios(d.RESPONSAVEL)))
+    + linha(lista('Prioridade', 'PRIORIDADE', opts(ST.prioridade, d.PRIORIDADE, false)), campo('Prazo', 'PRAZO', 'date', dia(d.PRAZO)))
+    + texto('Resolução', 'RESOLUCAO', d.RESOLUCAO)
+    + `<h3>Conversa da equipe</h3>${cs.map(c => `<div class="timeline-item" style="margin-top:14px"><small>${esc(nomeUsuario(c.USUARIO))} · ${dataHora(c.DATA_HORA)}</small><p style="white-space:pre-line">${textoMencao(c.MENSAGEM)}</p></div>`).join('') || '<p class="subtitle">Nenhum comentário ainda.</p>'}`
+    + texto('Adicionar comentário', 'comentario') + `<p class="visual-tip">Para mencionar, escreva @ e o nome exatamente como cadastrado: ${ativos().map(u => '@' + esc(u.NOME)).join(' · ')}. As menções ficam registradas; ainda não enviam notificação.</p>`,
+  async v => {
+    const { comentario, ...reg } = v;
+    await salvar('DEMANDAS', { ID_DEMANDA: id, ...reg }, 'Demanda atualizada.');
+    if (comentario) await gravar('comentarDemanda', { ID_DEMANDA: id, MENSAGEM: comentario }, 'Comentário publicado.');
+  });
+}
+
+/* ---------- Equipe ---------- */
+function equipePage() {
+  const g = eu().gestor;
+  return heading('QUEM CONSTRÓI COM A GENTE', 'Equipe', g ? 'Cadastre as pessoas, defina o perfil e redefina senhas quando precisar.' : 'Quem está no CRM e como falar com cada pessoa.', g ? btn('+ Nova pessoa', 'new-user') : '')
+    + `<div class="section-grid">${usuarios().map(u => { const abertas = T('TAREFAS').filter(t => t.RESPONSAVEL === u.ID_USUARIO && t.STATUS === 'Aberta').length, ops = leads().filter(o => o.RESPONSAVEL_ATUAL === u.ID_USUARIO).length; return `<section class="panel ${sim(u.ATIVO) ? '' : 'inactive'}"><div class="member"><span class="avatar">${esc(iniciais(u.NOME))}</span><div><h3>${esc(u.NOME)}</h3><p>${esc([u.CARGO, u.SETOR].filter(Boolean).join(' · '))}</p></div></div><p class="subtitle">${esc(u.EMAIL_GOOGLE)}</p><div class="permissions">${badge(u.PERFIL_PERMISSAO || 'Sem perfil', /gestor/i.test(u.PERFIL_PERMISSAO) ? 'orange' : 'teal')}${sim(u.ATIVO) ? '' : badge('Inativo', 'red')}</div><p class="secondary-text" style="margin-top:12px">${ops} oportunidades · ${abertas} tarefas abertas</p>${g ? `<div class="inline-actions">${btn('Editar', 'edit-user', 'secondary', `data-ref="${esc(u.ID_USUARIO)}"`)}${btn('Redefinir senha', 'reset-pass', 'text', `data-ref="${esc(u.ID_USUARIO)}"`)}</div>` : ''}</section>`; }).join('')}</div>`
+    + (g ? '<div class="notice" style="margin-top:20px">“Redefinir senha” faz a pessoa voltar a entrar com a senha provisória (CRM_SENHA_INICIAL) e criar uma nova no primeiro acesso.</div>' : '');
+}
+
+/* ---------- Relatórios ---------- */
+function relatoriosPage() {
+  const cs = T('CONTRATOS').filter(c => c.STATUS === 'Vigente'), ks = T('KITS_CONTRATADOS').filter(k => cs.some(c => c.ID_CONTRATO === k.ID_CONTRATO));
+  const base = T('OPORTUNIDADES').length, ganhos = T('OPORTUNIDADES').filter(o => o.STATUS === 'Ganho').length;
+  const motivos = {}; perdidas().forEach(o => { motivos[o.MOTIVO_PERDA] = (motivos[o.MOTIVO_PERDA] || 0) + 1; });
+  const maxM = Math.max(1, ...Object.values(motivos));
+  const origens = {}; T('OPORTUNIDADES').forEach(o => { const k = o.ORIGEM_LEAD || 'Não informada'; origens[k] = (origens[k] || 0) + 1; });
+  return heading('DADOS QUE ORIENTAM O CUIDADO', 'Relatórios', 'Indicadores calculados com os dados da planilha.', btn('Exportar escolas (CSV)', 'export-csv', 'secondary'))
+    + `<section class="stats">${[[dinheiro(valorKits(ks)), 'Valor de referência dos kits', 'Contratos vigentes'], [ks.reduce((a, k) => a + Number(k.QUANTIDADE_CONTRATADA || 0), 0), 'Kits contratados', 'Contratos vigentes'], [base ? Math.round(ganhos / base * 100) + '%' : '—', 'Oportunidades ganhas', `${ganhos} de ${base} registradas`], [perdidas().length, 'Não avançaram', 'Podem ser reabertas']].map(([n, t, s]) => `<div class="stat"><div class="stat-top">${t}</div><div class="stat-value">${n}</div><div class="stat-note">${s}</div></div>`).join('')}</section>`
+    + `<div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>Oportunidades por responsável</h2>${badge('Em andamento')}</div><div class="report-bars">${ativos().map(u => { const n = leads().filter(o => o.RESPONSAVEL_ATUAL === u.ID_USUARIO).length; return `<div class="funnel-row"><span>${esc(u.NOME)}</span><div class="bar-track"><div class="bar-fill" style="width:${n / (leads().length || 1) * 100}%"></div></div><strong>${n}</strong></div>`; }).join('') || vazio('Sem dados.')}</div></section>`
+    + `<section class="panel"><div class="panel-head"><h2>Motivos de não avanço</h2></div><div class="report-bars">${Object.entries(motivos).sort((a, b) => b[1] - a[1]).map(([m, n]) => `<div class="funnel-row"><span>${esc(m)}</span><div class="bar-track"><div class="bar-fill" style="width:${n / maxM * 100}%"></div></div><strong>${n}</strong></div>`).join('') || vazio('Nenhuma oportunidade encerrada.')}</div></section>`
+    + `<section class="panel"><div class="panel-head"><h2>Origem dos leads</h2></div><div class="report-bars">${Object.entries(origens).sort((a, b) => b[1] - a[1]).map(([m, n]) => `<div class="funnel-row"><span>${esc(m)}</span><div class="bar-track"><div class="bar-fill" style="width:${n / (base || 1) * 100}%"></div></div><strong>${n}</strong></div>`).join('') || vazio('Sem dados.')}</div></section>`
+    + `<section class="panel"><div class="panel-head"><h2>Renovações</h2></div>${T('RENOVACOES').map(r => `<div class="agenda-item"><span class="event-line"></span><div><h3>${escolaBtn(escola(r.ID_ESCOLA))}</h3><p>Ano ${esc(r.ANO_LETIVO_DESTINO)} · ${esc(r.STATUS)} · ${esc(nomeUsuario(r.RESPONSAVEL))}</p></div></div>`).join('') || vazio('Nenhuma renovação registrada.')}</section></div>`;
+}
+function exportarCsv() {
+  const linhas = [['ID_ESCOLA', 'ESCOLA', 'CIDADE', 'UF', 'CNPJ', 'STATUS', 'ETAPA', 'RESPONSAVEL', 'CONTATO', 'TELEFONE', 'EMAIL']].concat(T('ESCOLAS').map(e => { const o = oportunidadeDe(e.ID_ESCOLA) || {}, c = principal(e.ID_ESCOLA) || {}; return [e.ID_ESCOLA, e.NOME_ESCOLA, e.CIDADE, e.UF, e.CNPJ, e.STATUS_GERAL, o.ETAPA, nomeUsuario(o.RESPONSAVEL_ATUAL), c.NOME, c.TELEFONE, c.EMAIL]; }));
+  const csv = '﻿' + linhas.map(l => l.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = `escolas-crm-alicerces-${hoje()}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ---------- Configurações ---------- */
+function configPage() {
+  return heading('O QUE SUSTENTA O SISTEMA', 'Configurações', 'Listas e parâmetros lidos da planilha.', btn('↻ Atualizar dados', 'refresh', 'secondary') + btn('Alterar minha senha', 'change-pass', 'secondary'))
+    + `<div class="notice">Planilha conectada: <strong>${esc(D.planilha)}</strong> · versão ${esc(D.versao)} · dados carregados em ${dataHora(D.carregadoEm)}. Para mudar listas ou parâmetros, edite as abas LISTAS e CONFIGURACOES diretamente na planilha e clique em “Atualizar dados”.</div>`
+    + `<div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>Parâmetros</h2></div><div class="table-wrap"><table><thead><tr><th>CHAVE</th><th>VALOR</th><th>DESCRIÇÃO</th></tr></thead><tbody>${Object.entries(D.config).map(([k, c]) => `<tr><td>${esc(k)}</td><td>${esc(c.valor)}${c.ano ? ' <small>(' + esc(c.ano) + ')</small>' : ''}</td><td>${esc(c.descricao)}</td></tr>`).join('')}</tbody></table></div></section>`
+    + `<section class="panel"><div class="panel-head"><h2>Listas</h2></div>${Object.entries(D.listas).map(([k, vs]) => `<h4 style="margin:14px 0 8px">${esc(k)}</h4><div class="permissions">${vs.map(v => badge(v, '')).join('')}</div>`).join('')}</section></div>`;
+}
+
+/* ---------- Formulários ---------- */
+function formEscola(e) {
+  return linha(campo('Nome da escola', 'NOME_ESCOLA', 'text', e.NOME_ESCOLA, true), campo('Razão social', 'RAZAO_SOCIAL', 'text', e.RAZAO_SOCIAL))
+    + linha(campo('CNPJ', 'CNPJ', 'text', e.CNPJ), campo('Data de abertura', 'DATA_ABERTURA', 'date', dia(e.DATA_ABERTURA)))
+    + linha(campo('Cidade', 'CIDADE', 'text', e.CIDADE, true), campo('UF', 'UF', 'text', e.UF, true, 'maxlength="2" style="text-transform:uppercase"'))
+    + campo('Endereço', 'ENDERECO', 'text', e.ENDERECO) + campo('Faixa de alunos', 'FAIXA_ALUNOS', 'text', e.FAIXA_ALUNOS, false, 'placeholder="Ex.: 201 a 500"')
+    + multipla('Segmentos atuais', 'SEGMENTOS_ATUAIS', L('SEGMENTO'), e.SEGMENTOS_ATUAIS);
+}
+function formOportunidade(o, nova) {
+  const etapas = L('ETAPA_PROSPECCAO'), ultima = etapas.slice(-1)[0];
+  return linha(campo('Origem do lead', 'ORIGEM_LEAD', 'text', o.ORIGEM_LEAD, false, 'placeholder="Ex.: Landing page, Indicação, Evento"'), campo('Como conheceu a Alicerces', 'COMO_CONHECEU', 'text', o.COMO_CONHECEU))
+    + linha(campo('Sistema / material atual', 'SISTEMA_ATUAL', 'text', o.SISTEMA_ATUAL), campo('Cargo de quem entrou em contato', 'CARGO_LEAD', 'text', o.CARGO_LEAD))
+    + linha(lista('Responsável', 'RESPONSAVEL_ATUAL', optsUsuarios(o.RESPONSAVEL_ATUAL || (nova ? eu().id : ''))), nova ? lista('Etapa inicial', 'ETAPA', opts(etapas, etapas[0], false)) : (o.ETAPA === ultima && !encerrada(o) ? lista('Status pós-comercial', 'STATUS', opts(['Em andamento'].concat(L('STATUS_POS_COMERCIAL').filter(s => !['Ganho', 'Perdido'].includes(s))), o.STATUS, false)) : ''))
+    + texto('Desafio educacional', 'DESAFIO_EDUCACIONAL', o.DESAFIO_EDUCACIONAL) + texto('Observações', 'OBSERVACOES', o.OBSERVACOES);
+}
+function novaEscola() {
+  showForm('Nova escola', `<h3>Escola</h3>${formEscola({})}<h3>Contato principal</h3>${linha(campo('Nome', 'c_NOME'), campo('Cargo / função', 'c_CARGO_FUNCAO'))}${linha(campo('Telefone (com DDD)', 'c_TELEFONE', 'tel'), campo('E-mail', 'c_EMAIL', 'email'))}<h3>Oportunidade</h3>${formOportunidade({}, true)}`, async v => {
+    const escola_ = {}, contato = {}, oportunidade = {};
+    Object.entries(v).forEach(([k, val]) => { if (k.startsWith('c_')) contato[k.slice(2)] = val; else if (['NOME_ESCOLA', 'RAZAO_SOCIAL', 'CNPJ', 'DATA_ABERTURA', 'CIDADE', 'UF', 'ENDERECO', 'FAIXA_ALUNOS', 'SEGMENTOS_ATUAIS'].includes(k)) escola_[k] = k === 'UF' ? val.toUpperCase() : val; else oportunidade[k] = val; });
+    const r = await gravar('novaEscola', { escola: escola_, contato, oportunidade }, 'Escola cadastrada.');
+    setTimeout(() => abrirEscola(r.ID_ESCOLA), 50);
+  }, 'Cadastrar escola');
+}
+function editarEscola(e) {
+  showForm('Editar escola', formEscola(e), v => { v.UF = (v.UF || '').toUpperCase(); return salvar('ESCOLAS', { ID_ESCOLA: e.ID_ESCOLA, _versao: e.ULTIMA_ATUALIZACAO, ...v }, 'Escola atualizada.'); });
+}
+function editarOportunidade(o) { showForm('Editar oportunidade', formOportunidade(o, false), v => salvar('OPORTUNIDADES', { ID_OPORTUNIDADE: o.ID_OPORTUNIDADE, ...v }, 'Oportunidade atualizada.')); }
+function formContato(c, idEscola) {
+  showForm(c.ID_CONTATO ? 'Editar contato' : 'Novo contato', linha(campo('Nome', 'NOME', 'text', c.NOME, true), campo('Cargo / função', 'CARGO_FUNCAO', 'text', c.CARGO_FUNCAO)) + linha(campo('Telefone (com DDD)', 'TELEFONE', 'tel', c.TELEFONE), campo('E-mail', 'EMAIL', 'email', c.EMAIL)) + linha(lista('Segmento relacionado', 'SEGMENTO_RELACIONADO', opts(L('SEGMENTO'), c.SEGMENTO_RELACIONADO, 'Todos / não se aplica')), campo('Ano de referência', 'ANO_REFERENCIA', 'number', c.ANO_REFERENCIA || new Date().getFullYear())) + marca('Contato principal da escola', 'CONTATO_PRINCIPAL', sim(c.CONTATO_PRINCIPAL)) + marca('Ativo', 'ATIVO', c.ID_CONTATO ? sim(c.ATIVO) || c.ATIVO === '' : true),
+    v => salvar('CONTATOS', c.ID_CONTATO ? { ID_CONTATO: c.ID_CONTATO, _versao: c.ULTIMA_ATUALIZACAO, ...v } : { ID_ESCOLA: idEscola, ...v }, 'Contato salvo.'));
+}
+function formTentativa(o) {
+  const n = Number(o.TENTATIVAS_PRE_REUNIAO || 0), m = maxTent();
+  if (n >= m) { toast(`Limite de ${m} tentativas atingido. Agende a reunião ou registre “Não avançou”.`); return; }
+  showForm(`Tentativa ${n + 1} de ${m}`, linha(lista('Canal', 'CANAL', opts(L('CANAL'), '', 'Selecione'), true), campo('Data e hora', 'DATA_HORA', 'datetime-local', agora(), true)) + campo('Resultado', 'RESULTADO', 'text', '', false, 'placeholder="Ex.: Sem resposta, Pediu retorno, Agendou reunião"') + texto('Descrição', 'DESCRICAO') + campo(`Próxima tentativa (em branco = daqui a ${cfg('INTERVALO_TENTATIVAS_PRE_DIAS', 7)} dias)`, 'PROXIMA_TENTATIVA', 'date', ''),
+    v => gravar('registrarTentativa', { ID_OPORTUNIDADE: o.ID_OPORTUNIDADE, ...v }, 'Tentativa registrada.'), 'Registrar');
+}
+function formAtividade(e) {
+  const o = oportunidadeDe(e.ID_ESCOLA);
+  showForm('Anotação / atividade', linha(campo('Tipo', 'TIPO_ATIVIDADE', 'text', 'Anotação', true, 'list="tipos-atividade"'), lista('Canal', 'CANAL', opts(L('CANAL'), '', 'Não se aplica'))) + `<datalist id="tipos-atividade">${['Anotação', 'Ligação', 'E-mail', 'WhatsApp', 'Visita', 'Envio de amostra', 'Degustação'].map(t => `<option value="${t}">`).join('')}</datalist>` + campo('Data e hora', 'DATA_HORA', 'datetime-local', agora(), true) + texto('Descrição', 'DESCRICAO', '', true) + linha(campo('Próxima ação', 'PROXIMA_ACAO'), campo('Prazo da próxima ação', 'PRAZO_PROXIMA_ACAO', 'date')),
+    v => salvar('ATIVIDADES', { ID_ESCOLA: e.ID_ESCOLA, ID_OPORTUNIDADE: o ? o.ID_OPORTUNIDADE : '', ...v }, 'Atividade registrada.'));
+}
+function formMoverEtapa(o) {
+  showForm('Mover etapa', lista('Nova etapa', 'ETAPA', opts(L('ETAPA_PROSPECCAO'), o.ETAPA, false), true) + texto('Comentário (opcional)', 'DESCRICAO'), v => gravar('moverEtapa', { ID_OPORTUNIDADE: o.ID_OPORTUNIDADE, ...v }, 'Etapa atualizada.'), 'Mover');
+}
+function formEncerrar(o) {
+  showForm('Não avançou', `<p class="subtitle">A oportunidade sai do funil e fica no filtro “Não avançaram”, de onde pode ser reaberta.</p>` + lista('Motivo', 'MOTIVO_PERDA', opts(L('MOTIVO_PERDA'), '', 'Selecione o motivo'), true) + texto('Comentário (opcional)', 'DESCRICAO'), v => gravar('encerrarOportunidade', { ID_OPORTUNIDADE: o.ID_OPORTUNIDADE, ...v }, 'Oportunidade encerrada.'), 'Confirmar');
+}
+function formReuniao(r, idEscola) {
+  const e = escola(r.ID_ESCOLA || idEscola);
+  showForm(r.ID_REUNIAO ? 'Editar reunião' : 'Agendar reunião', (e ? `<p class="subtitle">${esc(e.NOME_ESCOLA)}</p>` : lista('Escola', 'ID_ESCOLA', optsEscolas(''), true))
+    + linha(lista('Tipo', 'TIPO_REUNIAO', opts(L('TIPO_REUNIAO'), r.TIPO_REUNIAO, false), true), lista('Responsável', 'RESPONSAVEL', optsUsuarios(r.RESPONSAVEL || eu().id), true))
+    + linha(campo('Data', 'data', 'date', dia(r.DATA_HORA_INICIO) || hoje(), true), campo('Início', 'inicio', 'time', hora(r.DATA_HORA_INICIO) || '09:00', true), campo('Fim', 'fim', 'time', hora(r.DATA_HORA_FIM) || '10:00', true))
+    + campo('Link da reunião (Meet, Zoom…)', 'LINK_REUNIAO', 'url', r.LINK_REUNIAO) + texto('Observações', 'OBSERVACOES', r.OBSERVACOES)
+    + (r.ID_REUNIAO ? lista('Desfecho', 'DESFECHO', opts(L('DESFECHO_REUNIAO'), r.DESFECHO, 'Ainda não aconteceu')) + `<p class="visual-tip">Ao escolher um desfecho, o status da reunião é atualizado.</p>` : ''),
+    v => {
+      const { data: d, inicio, fim, ...rest } = v;
+      const reg = { ...rest, DATA_HORA_INICIO: `${d}T${inicio}`, DATA_HORA_FIM: `${d}T${fim}` };
+      if (r.ID_REUNIAO) reg.ID_REUNIAO = r.ID_REUNIAO;
+      else { reg.ID_ESCOLA = (e && e.ID_ESCOLA) || rest.ID_ESCOLA; const ee = escola(reg.ID_ESCOLA), oo = ee && oportunidadeDe(ee.ID_ESCOLA); reg.ID_OPORTUNIDADE = oo && !encerrada(oo) ? oo.ID_OPORTUNIDADE : ''; reg.PROCESSO_ORIGEM = ee && ee.STATUS_GERAL === 'Cliente' ? 'Cliente' : 'Prospecção'; }
+      if (!reg.DESFECHO) delete reg.DESFECHO;
+      return salvar('REUNIOES', reg, 'Reunião salva.');
+    });
+}
+function formContratacao(e) {
+  const o = oportunidadeDe(e.ID_ESCOLA), prox = new Date().getFullYear() + 1;
+  const kit = i => `<div class="kit-row">${lista('Segmento', `k${i}_SEGMENTO`, opts(L('SEGMENTO'), '', '—'))}${campo('Faixa etária / ano', `k${i}_FAIXA_ETARIA_ANO`)}${campo('Produto / kit', `k${i}_PRODUTO_KIT`)}${campo('Qtd. contratada', `k${i}_QUANTIDADE_CONTRATADA`, 'number', '', false, 'min="0"')}${campo('Valor ref. (R$)', `k${i}_VALOR_REFERENCIA`, 'number', '', false, 'min="0" step="0.01"')}</div>`;
+  showForm('Registrar contratação', `<p class="subtitle">${esc(e.NOME_ESCOLA)} passa para Clientes. Serão criados a contratação, o contrato, o primeiro ano letivo e os kits.</p>`
+    + linha(campo('Ano letivo inicial', 'ANO_LETIVO_INICIAL', 'number', prox, true, 'min="2020" max="2100"'), campo('Duração (anos)', 'DURACAO_ANOS', 'number', cfg('DURACAO_PADRAO_CONTRATO_ANOS', 3), true, 'min="1" max="10"'), campo('Data do ganho', 'DATA_GANHO', 'date', hoje(), true))
+    + linha(campo('Número do contrato', 'NUMERO_CONTRATO'), campo('Data de assinatura', 'DATA_ASSINATURA', 'date'))
+    + linha(campo('Início da vigência', 'INICIO_VIGENCIA', 'date'), campo('Fim da vigência', 'FIM_VIGENCIA', 'date'))
+    + linha(campo('Forma de comercialização', 'FORMA_COMERCIALIZACAO'), campo('Desconto (%)', 'PERCENTUAL_DESCONTO', 'text', '', false, 'placeholder="Ex.: 10%"'))
+    + linha(lista('Responsável comercial', 'RESPONSAVEL', optsUsuarios((o && o.RESPONSAVEL_ATUAL) || eu().id), true), lista('Responsável pedagógico', 'RESPONSAVEL_PEDAGOGICO', optsUsuarios('', 'Definir depois')))
+    + `<h3>Kits contratados</h3><p class="visual-tip">Preencha uma linha por produto. Linhas vazias são ignoradas; dá para incluir mais itens depois.</p>${[0, 1, 2, 3, 4].map(kit).join('')}` + texto('Observações', 'OBSERVACOES'),
+    v => {
+      const kits = [0, 1, 2, 3, 4].map(i => ({ SEGMENTO: v[`k${i}_SEGMENTO`], FAIXA_ETARIA_ANO: v[`k${i}_FAIXA_ETARIA_ANO`], PRODUTO_KIT: v[`k${i}_PRODUTO_KIT`], QUANTIDADE_CONTRATADA: v[`k${i}_QUANTIDADE_CONTRATADA`], VALOR_REFERENCIA: v[`k${i}_VALOR_REFERENCIA`] })).filter(k => k.PRODUTO_KIT || k.SEGMENTO);
+      const d = {}; Object.entries(v).forEach(([k, val]) => { if (!/^k\d_/.test(k)) d[k] = val; });
+      return gravar('registrarContratacao', { ...d, ID_ESCOLA: e.ID_ESCOLA, ID_OPORTUNIDADE: o && !encerrada(o) ? o.ID_OPORTUNIDADE : '', kits }, 'Contratação registrada! A escola agora é cliente.');
+    }, 'Registrar contratação');
+}
+function formEtapasContratacao(c) {
+  showForm('Etapas da contratação', ETAPAS_CONTRATACAO.map(([k, r]) => campo(r, k, 'date', dia(c[k]))).join('') + lista('Status', 'STATUS', opts(ST.contratacao, c.STATUS, false)) + campo('Concluído em', 'CONCLUIDO_EM', 'date', dia(c.CONCLUIDO_EM)) + texto('Observações', 'OBSERVACOES', c.OBSERVACOES),
+    v => salvar('CONTRATACOES', { ID_CONTRATACAO: c.ID_CONTRATACAO, ...v }, 'Etapas atualizadas.'));
+}
+function formContrato(c) {
+  showForm('Editar contrato', linha(campo('Número', 'NUMERO_CONTRATO', 'text', c.NUMERO_CONTRATO), lista('Status', 'STATUS', opts(ST.contrato, c.STATUS, false))) + linha(campo('Ano letivo inicial', 'ANO_LETIVO_INICIAL', 'number', c.ANO_LETIVO_INICIAL, true), campo('Ano letivo final', 'ANO_LETIVO_FINAL', 'number', c.ANO_LETIVO_FINAL, true)) + linha(campo('Assinatura', 'DATA_ASSINATURA', 'date', dia(c.DATA_ASSINATURA)), campo('Início vigência', 'INICIO_VIGENCIA', 'date', dia(c.INICIO_VIGENCIA)), campo('Fim vigência', 'FIM_VIGENCIA', 'date', dia(c.FIM_VIGENCIA))) + linha(campo('Forma de comercialização', 'FORMA_COMERCIALIZACAO', 'text', c.FORMA_COMERCIALIZACAO), campo('Desconto', 'PERCENTUAL_DESCONTO', 'text', c.PERCENTUAL_DESCONTO)) + campo('Link do contrato assinado', 'LINK_DOCUMENTO_ASSINADO', 'url', c.LINK_DOCUMENTO_ASSINADO) + linha(campo('Data da rescisão', 'DATA_RESCISAO', 'date', dia(c.DATA_RESCISAO)), campo('Motivo da rescisão', 'MOTIVO_RESCISAO', 'text', c.MOTIVO_RESCISAO)),
+    v => salvar('CONTRATOS', { ID_CONTRATO: c.ID_CONTRATO, ...v }, 'Contrato atualizado.'));
+}
+function formKit(k, c) {
+  showForm(k.ID_ITEM ? 'Editar item de kit' : 'Novo item de kit', linha(campo('Ano letivo', 'ANO_LETIVO', 'number', k.ANO_LETIVO || c.ANO_LETIVO_INICIAL, true), lista('Segmento', 'SEGMENTO', opts(L('SEGMENTO'), k.SEGMENTO, '—'))) + linha(campo('Faixa etária / ano', 'FAIXA_ETARIA_ANO', 'text', k.FAIXA_ETARIA_ANO), campo('Produto / kit', 'PRODUTO_KIT', 'text', k.PRODUTO_KIT, true)) + linha(campo('Qtd. prevista', 'QUANTIDADE_PREVISTA', 'number', k.QUANTIDADE_PREVISTA, false, 'min="0"'), campo('Qtd. contratada', 'QUANTIDADE_CONTRATADA', 'number', k.QUANTIDADE_CONTRATADA, false, 'min="0"'), campo('Valor ref. (R$)', 'VALOR_REFERENCIA', 'number', k.VALOR_REFERENCIA, false, 'min="0" step="0.01"')) + texto('Observações', 'OBSERVACOES', k.OBSERVACOES),
+    v => salvar('KITS_CONTRATADOS', k.ID_ITEM ? { ID_ITEM: k.ID_ITEM, ...v } : { ID_ESCOLA: c.ID_ESCOLA, ID_CONTRATO: c.ID_CONTRATO, ...v }, 'Item salvo.'));
+}
+function formAno(a, c) {
+  showForm(a.ID_ANO_LETIVO ? 'Editar ano letivo' : 'Novo ano letivo', linha(campo('Ano', 'ANO', 'number', a.ANO || (Number(c.ANO_LETIVO_INICIAL) + T('ANOS_LETIVOS').filter(x => x.ID_CONTRATO === c.ID_CONTRATO).length), true), lista('Status', 'STATUS', opts(ST.anoLetivo, a.STATUS, false))) + linha(campo('Início', 'DATA_INICIO', 'date', dia(a.DATA_INICIO)), campo('Fim', 'DATA_FIM', 'date', dia(a.DATA_FIM))) + linha(lista('Responsável comercial', 'RESPONSAVEL_COMERCIAL', optsUsuarios(a.RESPONSAVEL_COMERCIAL)), lista('Responsável pedagógico', 'RESPONSAVEL_PEDAGOGICO', optsUsuarios(a.RESPONSAVEL_PEDAGOGICO))) + texto('Observações', 'OBSERVACOES', a.OBSERVACOES),
+    v => salvar('ANOS_LETIVOS', a.ID_ANO_LETIVO ? { ID_ANO_LETIVO: a.ID_ANO_LETIVO, ...v } : { ID_ESCOLA: c.ID_ESCOLA, ID_CONTRATO: c.ID_CONTRATO, ...v }, 'Ano letivo salvo.'));
+}
+function formRenovacao(r, c) {
+  showForm(r.ID_RENOVACAO ? 'Editar renovação' : 'Abrir renovação', linha(campo('Ano letivo de destino', 'ANO_LETIVO_DESTINO', 'number', r.ANO_LETIVO_DESTINO || new Date().getFullYear() + 1, true), lista('Status', 'STATUS', opts(ST.renovacao, r.STATUS, false))) + linha(campo('Abertura', 'DATA_ABERTURA', 'date', dia(r.DATA_ABERTURA) || hoje()), lista('Responsável', 'RESPONSAVEL', optsUsuarios(r.RESPONSAVEL || eu().id)))
+    + linha(campo('Reunião de renovação', 'DATA_REUNIAO_RENOVACAO', 'date', dia(r.DATA_REUNIAO_RENOVACAO)), campo('Kits recebidos', 'DATA_KITS_RECEBIDOS', 'date', dia(r.DATA_KITS_RECEBIDOS)), campo('Aprovação', 'DATA_APROVACAO', 'date', dia(r.DATA_APROVACAO))) + linha(campo('Envio p/ assinatura', 'DATA_ENVIO_ASSINATURA', 'date', dia(r.DATA_ENVIO_ASSINATURA)), campo('Assinatura', 'DATA_ASSINATURA', 'date', dia(r.DATA_ASSINATURA)), campo('Conclusão', 'DATA_CONCLUSAO', 'date', dia(r.DATA_CONCLUSAO)))
+    + marca('Rescisão solicitada', 'RESCISAO_SOLICITADA', sim(r.RESCISAO_SOLICITADA)) + linha(campo('Data da solicitação', 'DATA_SOLICITACAO_RESCISAO', 'date', dia(r.DATA_SOLICITACAO_RESCISAO)), campo('Motivo da rescisão', 'MOTIVO_RESCISAO', 'text', r.MOTIVO_RESCISAO)) + texto('Observações', 'OBSERVACOES', r.OBSERVACOES),
+    v => salvar('RENOVACOES', r.ID_RENOVACAO ? { ID_RENOVACAO: r.ID_RENOVACAO, ...v } : { ID_ESCOLA: c.ID_ESCOLA, ID_CONTRATO: c.ID_CONTRATO, ...v }, 'Renovação salva.'));
+}
+function formDoc(d, idEscola) {
+  const cs = contratosDe(d.ID_ESCOLA || idEscola);
+  showForm(d.ID_DOCUMENTO ? 'Editar documento' : 'Novo documento', linha(campo('Tipo', 'TIPO_DOCUMENTO', 'text', d.TIPO_DOCUMENTO, true, 'placeholder="Ex.: Contrato social, Proposta, Contrato assinado"'), lista('Status', 'STATUS_DOCUMENTO', opts(ST.documento, d.STATUS_DOCUMENTO, false))) + campo('Nome do arquivo', 'NOME_ARQUIVO', 'text', d.NOME_ARQUIVO) + campo('Link (Google Drive)', 'LINK_ARQUIVO', 'url', d.LINK_ARQUIVO) + lista('Contrato relacionado', 'ID_CONTRATO', `<option value="">Nenhum</option>` + cs.map(c => `<option value="${esc(c.ID_CONTRATO)}" ${c.ID_CONTRATO === d.ID_CONTRATO ? 'selected' : ''}>${esc(c.NUMERO_CONTRATO || c.ID_CONTRATO)}</option>`).join('')),
+    v => salvar('DOCUMENTOS', d.ID_DOCUMENTO ? { ID_DOCUMENTO: d.ID_DOCUMENTO, ...v } : { ID_ESCOLA: idEscola, ...v }, 'Documento salvo.'));
+}
+function formPedagogico(p, idEscola) {
+  const anos = T('ANOS_LETIVOS').filter(a => a.ID_ESCOLA === (p.ID_ESCOLA || idEscola));
+  showForm(p.ID_PEDAGOGICO ? 'Editar registro pedagógico' : 'Registro pedagógico', linha(lista('Tipo de atendimento', 'TIPO_ATENDIMENTO', opts(L('TIPO_REUNIAO'), p.TIPO_ATENDIMENTO, false), true), lista('Status', 'STATUS', opts(ST.pedagogico, p.STATUS || 'Realizado', false)))
+    + linha(lista('Responsável', 'RESPONSAVEL', optsUsuarios(p.RESPONSAVEL || eu().id), true), campo('Data e hora', 'DATA_HORA', 'datetime-local', p.DATA_HORA ? (String(p.DATA_HORA).length > 10 ? p.DATA_HORA : p.DATA_HORA + 'T09:00') : agora(), true), lista('Ano letivo', 'ID_ANO_LETIVO', '<option value="">—</option>' + anos.map(a => `<option value="${esc(a.ID_ANO_LETIVO)}" ${a.ID_ANO_LETIVO === p.ID_ANO_LETIVO ? 'selected' : ''}>${esc(a.ANO)}</option>`).join('')))
+    + multipla('Segmentos', 'SEGMENTOS', L('SEGMENTO'), p.SEGMENTOS) + campo('Participantes', 'PARTICIPANTES', 'text', p.PARTICIPANTES) + texto('Observações', 'OBSERVACOES', p.OBSERVACOES, true) + linha(campo('Próxima ação', 'PROXIMA_ACAO', 'text', p.PROXIMA_ACAO), campo('Prazo', 'PRAZO_PROXIMA_ACAO', 'date', dia(p.PRAZO_PROXIMA_ACAO))),
+    v => salvar('PEDAGOGICO', p.ID_PEDAGOGICO ? { ID_PEDAGOGICO: p.ID_PEDAGOGICO, ...v } : { ID_ESCOLA: idEscola, ...v }, 'Registro salvo.'));
+}
+function formTarefa(t, idEscola) {
+  showForm(t.ID_TAREFA ? 'Editar tarefa' : 'Nova tarefa', campo('Título', 'TITULO', 'text', t.TITULO, true) + linha(lista('Escola', 'ID_ESCOLA', optsEscolas(t.ID_ESCOLA || idEscola || '')), campo('Tipo', 'TIPO', 'text', t.TIPO, false, 'placeholder="Ex.: Retorno, Envio de amostra"')) + linha(lista('Responsável', 'RESPONSAVEL', optsUsuarios(t.RESPONSAVEL || eu().id), true), campo('Prazo', 'PRAZO', 'date', dia(t.PRAZO) || hoje(), true), lista('Prioridade', 'PRIORIDADE', opts(ST.prioridade, t.PRIORIDADE || 'Normal', false))) + (t.ID_TAREFA ? lista('Status', 'STATUS', opts(ST.tarefa, t.STATUS, false)) + texto('Resolução', 'RESOLUCAO', t.RESOLUCAO) : ''),
+    v => { const reg = t.ID_TAREFA ? { ID_TAREFA: t.ID_TAREFA, ...v } : { ...v }; if (!t.ID_TAREFA && v.ID_ESCOLA) { const o = oportunidadeDe(v.ID_ESCOLA); if (o && !encerrada(o)) reg.ID_OPORTUNIDADE = o.ID_OPORTUNIDADE; } return salvar('TAREFAS', reg, 'Tarefa salva.'); });
+}
+function formDemanda(idEscola) {
+  showForm('Nova demanda', linha(lista('Escola', 'ID_ESCOLA', optsEscolas(idEscola || '')), lista('Área', 'AREA', opts(L('AREA_DEMANDA'), '', false), true)) + texto('Descrição', 'DESCRICAO', '', true) + linha(lista('Responsável', 'RESPONSAVEL', optsUsuarios(''), true), lista('Prioridade', 'PRIORIDADE', opts(ST.prioridade, 'Normal', false)), campo('Prazo', 'PRAZO', 'date')),
+    v => salvar('DEMANDAS', v, 'Demanda criada.'));
+}
+function formUsuario(u) {
+  showForm(u.ID_USUARIO ? 'Editar pessoa' : 'Nova pessoa', linha(campo('Nome (como aparece nas menções)', 'NOME', 'text', u.NOME, true), campo('E-mail de login', 'EMAIL_GOOGLE', 'email', u.EMAIL_GOOGLE, true)) + linha(campo('Setor', 'SETOR', 'text', u.SETOR), campo('Cargo', 'CARGO', 'text', u.CARGO)) + linha(lista('Perfil', 'PERFIL_PERMISSAO', opts(ST.perfil, u.PERFIL_PERMISSAO || 'Operacional', false), true), campo('ID da agenda Google (opcional)', 'GOOGLE_CALENDAR_ID', 'text', u.GOOGLE_CALENDAR_ID)) + marca('Ativo (pode entrar no CRM)', 'ATIVO', u.ID_USUARIO ? sim(u.ATIVO) : true) + marca('Recebe notificações por e-mail (uso futuro)', 'RECEBE_EMAIL_NOTIFICACAO', sim(u.RECEBE_EMAIL_NOTIFICACAO)) + (u.ID_USUARIO ? '' : '<p class="visual-tip">No primeiro acesso, a pessoa entra com a senha provisória e cria a própria senha.</p>'),
+    v => salvar('USUARIOS', u.ID_USUARIO ? { ID_USUARIO: u.ID_USUARIO, ...v } : v, 'Pessoa salva.'));
+}
+
+/* ---------- Eventos ---------- */
+const achar = (tab, campo_, id) => T(tab).find(x => x[campo_] === id);
+addEventListener('click', async e => {
+  const b = e.target.closest('[data-action]'); if (!b) return;
+  const a = b.dataset.action, ref = b.dataset.ref, esc_ = escola(detailId), o = esc_ && oportunidadeDe(esc_.ID_ESCOLA);
+  if (a.startsWith('nav-')) { if (detail.open) detail.close(); setPage(a.slice(4)); return; }
+  try {
+    switch (a) {
+      case 'logout': sair(false); break;
+      case 'refresh': recarregar('Dados atualizados.'); break;
+      case 'change-pass': telaSenha(false); break;
+      case 'open-school': if (formDialog.open) formDialog.close(); abrirEscola(b.dataset.id); break;
+      case 'event-detail': abrirEscola(b.dataset.id, 3); break;
+      case 'close-detail': detail.close(); break;
+      case 'close-form': formDialog.close(); break;
+      case 'detail-tab': detailTab = Number(b.dataset.tab); renderDetail(); $('tab-' + detailTab).focus(); break;
+      case 'view-kanban': view = 'kanban'; render(); break;
+      case 'view-list': view = 'list'; render(); break;
+      case 'prev-month': mes--; if (mes < 0) { mes = 11; ano--; } render(); break;
+      case 'next-month': mes++; if (mes > 11) { mes = 0; ano++; } render(); break;
+      case 'today-month': mes = new Date().getMonth(); ano = new Date().getFullYear(); render(); break;
+      case 'new-school': novaEscola(); break;
+      case 'edit-school': editarEscola(esc_); break;
+      case 'edit-opp': editarOportunidade(o); break;
+      case 'move-stage': formMoverEtapa(o); break;
+      case 'new-attempt': formTentativa(o); break;
+      case 'new-activity': formAtividade(esc_); break;
+      case 'close-opp': formEncerrar(o); break;
+      case 'reopen': if (confirmar(b, 'Clique de novo para reabrir')) await gravar('reabrirOportunidade', { ID_OPORTUNIDADE: o.ID_OPORTUNIDADE }, 'Oportunidade reaberta.'); break;
+      case 'new-contact': formContato({}, esc_.ID_ESCOLA); break;
+      case 'edit-contact': formContato(achar('CONTATOS', 'ID_CONTATO', ref)); break;
+      case 'new-meeting': formReuniao({}, b.dataset.id || (detail.open ? detailId : '')); break;
+      case 'edit-meeting': formReuniao(achar('REUNIOES', 'ID_REUNIAO', ref)); break;
+      case 'new-contract': formContratacao(esc_); break;
+      case 'edit-hiring': formEtapasContratacao(achar('CONTRATACOES', 'ID_CONTRATACAO', ref)); break;
+      case 'edit-contract': formContrato(achar('CONTRATOS', 'ID_CONTRATO', ref)); break;
+      case 'new-kit': formKit({}, achar('CONTRATOS', 'ID_CONTRATO', ref)); break;
+      case 'edit-kit': { const k = achar('KITS_CONTRATADOS', 'ID_ITEM', ref); formKit(k, achar('CONTRATOS', 'ID_CONTRATO', k.ID_CONTRATO) || {}); break; }
+      case 'new-year': formAno({}, achar('CONTRATOS', 'ID_CONTRATO', ref)); break;
+      case 'edit-year': { const y = achar('ANOS_LETIVOS', 'ID_ANO_LETIVO', ref); formAno(y, achar('CONTRATOS', 'ID_CONTRATO', y.ID_CONTRATO) || {}); break; }
+      case 'new-renewal': formRenovacao({}, achar('CONTRATOS', 'ID_CONTRATO', ref)); break;
+      case 'edit-renewal': formRenovacao(achar('RENOVACOES', 'ID_RENOVACAO', ref), {}); break;
+      case 'new-doc': formDoc({}, esc_.ID_ESCOLA); break;
+      case 'edit-doc': formDoc(achar('DOCUMENTOS', 'ID_DOCUMENTO', ref)); break;
+      case 'new-ped': formPedagogico({}, esc_.ID_ESCOLA); break;
+      case 'edit-ped': formPedagogico(achar('PEDAGOGICO', 'ID_PEDAGOGICO', ref)); break;
+      case 'new-task': formTarefa({}, b.dataset.id); break;
+      case 'edit-task': formTarefa(achar('TAREFAS', 'ID_TAREFA', ref)); break;
+      case 'new-demand': formDemanda(b.dataset.id); break;
+      case 'open-demand': abrirDemanda(ref); break;
+      case 'new-user': formUsuario({}); break;
+      case 'edit-user': formUsuario(achar('USUARIOS', 'ID_USUARIO', ref)); break;
+      case 'reset-pass': if (confirmar(b, 'Clique de novo para confirmar')) { const r = await api('resetarSenha', { idUsuario: ref }); toast(r.mensagem); } break;
+      case 'export-csv': exportarCsv(); break;
+    }
+  } catch (err) { toast(err.message); }
+});
+function confirmar(b, texto_) {
+  if (b.dataset.confirm === '1') { b.dataset.confirm = ''; return true; }
+  b.dataset.confirm = '1'; const orig = b.textContent; b.textContent = texto_;
+  setTimeout(() => { b.dataset.confirm = ''; b.textContent = orig; }, 4000);
+  return false;
+}
+addEventListener('change', async e => {
+  const el = e.target;
+  if (el.id === 'owner-filter') { owner = el.value; render(); }
+  if (el.id === 'stage-filter') { statusFilter = el.value; render(); }
+  if (el.dataset.task) {
+    el.disabled = true;
+    try { await salvar('TAREFAS', { ID_TAREFA: el.dataset.task, STATUS: el.checked ? 'Concluída' : 'Aberta' }, el.checked ? 'Tarefa concluída.' : 'Tarefa reaberta.'); }
+    catch (err) { el.checked = !el.checked; el.disabled = false; toast(err.message); }
+  }
+});
+addEventListener('input', e => {
+  const el = e.target;
+  if (el.id === 'page-search') { query = el.value; const pos = el.selectionStart; render(); const f = $('page-search'); if (f) { f.focus(); try { f.setSelectionRange(pos, pos); } catch {} } }
+  if (el.id === 'global-search') { const v = el.value; if (page !== 'prospeccao' && page !== 'clientes') { page = 'prospeccao'; location.hash = page; } query = v; render(); el.focus(); }
+});
+addEventListener('keydown', e => {
+  if (e.target.matches('[role="tab"]') && ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+    e.preventDefault(); detailTab = e.key === 'Home' ? 0 : e.key === 'End' ? TABS.length - 1 : (detailTab + (e.key === 'ArrowRight' ? 1 : -1) + TABS.length) % TABS.length; renderDetail(); $('tab-' + detailTab).focus();
+  }
+});
+addEventListener('dragstart', e => { const c = e.target.closest('.lead-card'); if (c) { dragId = c.dataset.id; e.dataTransfer.setData('text/plain', dragId); e.dataTransfer.effectAllowed = 'move'; } });
+addEventListener('dragover', e => { const col = e.target.closest('.kanban-column'); if (col) { e.preventDefault(); col.classList.add('drop-active'); } });
+addEventListener('dragleave', e => { const col = e.target.closest('.kanban-column'); if (col && !col.contains(e.relatedTarget)) col.classList.remove('drop-active'); });
+addEventListener('drop', async e => {
+  const col = e.target.closest('.kanban-column'); if (!col) return;
+  e.preventDefault(); col.classList.remove('drop-active');
+  const id = dragId || e.dataTransfer.getData('text/plain'), o = T('OPORTUNIDADES').find(x => x.ID_OPORTUNIDADE === id);
+  if (o && o.ETAPA !== col.dataset.stage) { try { await gravar('moverEtapa', { ID_OPORTUNIDADE: id, ETAPA: col.dataset.stage }, 'Etapa atualizada: ' + col.dataset.stage); } catch (err) { toast(err.message); } }
+});
+addEventListener('dragend', () => { dragId = null; document.querySelectorAll('.drop-active').forEach(c => c.classList.remove('drop-active')); });
+addEventListener('hashchange', () => { const p = location.hash.slice(1); if (D && p !== page) setPage(p); });
+$('menu-toggle').addEventListener('click', () => $('sidebar').classList.toggle('open'));
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && D && !ocupado && !formDialog.open && Date.now() - (recarregar.ultima || 0) > 120000) { recarregar.ultima = Date.now(); recarregar(); } });
+detail.addEventListener('close', () => { detailId = null; });
+
+/* ---------- Início ---------- */
+if (token) iniciar(); else telaLogin();
 })();
 </script>
 </body>
