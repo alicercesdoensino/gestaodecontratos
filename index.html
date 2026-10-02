@@ -80,6 +80,17 @@ span.ck-box{cursor:default}
 .ck-box:focus-visible{outline:2px solid var(--teal-dark);outline-offset:2px}
 .progress.ped span{background:var(--orange)}
 .sec-title{font-size:13px;color:var(--teal-dark);margin:22px 0 4px}
+/* Configurações */
+.cfg-card .panel-head{margin-bottom:2px}
+.cfg-lista{list-style:none;padding:0;margin:12px 0 0}
+.cfg-lista li{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.cfg-lista li:last-child{border-bottom:0}
+.cfg-valor{flex:1;font-size:13px}
+.cfg-ordem{display:flex;gap:4px;white-space:nowrap}
+.icon-button.mini{width:28px;height:28px;font-size:13px}
+.icon-button.mini:disabled{opacity:.3;cursor:default}
+.segmented button[role=tab]{white-space:nowrap}
+.panel-head .button.text{white-space:nowrap}
 </style>
   <script>
     /* ===== ENDEREÇO DA API (link /exec do Apps Script) ===== */
@@ -97,7 +108,7 @@ span.ck-box{cursor:default}
   <div class="shell">
     <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola…" aria-label="Buscar escola em todo o CRM"></label><button class="sync" data-action="refresh" id="sync-status" title="Atualizar dados da planilha" style="background:none">Tudo salvo</button><span class="date-label" id="date-label"></span><span class="avatar small" id="top-avatar"></span></div></header>
     <main id="main" tabindex="-1"></main>
-    <footer>ALICERCES · CRM EDITORIAL <span>Versão da tela 1.3 · 02/10/2026 · Dados gravados na planilha Google</span></footer>
+    <footer>ALICERCES · CRM EDITORIAL <span>Versão da tela 1.4 · 02/10/2026 · Dados gravados na planilha Google</span></footer>
   </div>
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-title"><div id="form-content"></div></dialog>
@@ -380,7 +391,8 @@ function render() {
   if (!D) return;
   const u = eu();
   const abertas = T('TAREFAS').filter(t => t.STATUS === 'Aberta' && t.RESPONSAVEL === u.id).length;
-  $('navigation').innerHTML = NAV.map(([id, label, i]) => `<a href="#${id}" class="nav-link ${page === id ? 'active' : ''}" ${page === id ? 'aria-current="page"' : ''}>${icon(i)}<span>${label}</span>${id === 'tarefas' && abertas ? `<span class="count" title="Suas tarefas abertas">${abertas}</span>` : ''}</a>`).join('');
+  if (page === 'configuracoes' && !u.gestor) page = 'inicio';
+  $('navigation').innerHTML = NAV.filter(([id]) => id !== 'configuracoes' || u.gestor).map(([id, label, i]) => `<a href="#${id}" class="nav-link ${page === id ? 'active' : ''}" ${page === id ? 'aria-current="page"' : ''}>${icon(i)}<span>${label}</span>${id === 'tarefas' && abertas ? `<span class="count" title="Suas tarefas abertas">${abertas}</span>` : ''}</a>`).join('');
   $('breadcrumb').textContent = page === 'inicio' ? 'Visão geral' : NAV.find(n => n[0] === page)[1];
   $('profile').innerHTML = `<span class="avatar">${esc(iniciais(u.nome))}</span><div>${esc(u.nome)}<small>${esc(u.perfil || '')}</small></div>`;
   $('top-avatar').textContent = iniciais(u.nome);
@@ -683,13 +695,83 @@ function exportarCsv() {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = `escolas-crm-alicerces-${hoje()}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-/* ---------- Configurações ---------- */
+/* ---------- Configurações (somente gestor) ---------- */
+let cfgAba = 'parametros';
+const NOMES_LISTAS = { ETAPA_PROSPECCAO: 'Etapas do funil de prospecção', STATUS_POS_COMERCIAL: 'Status pós-comercial', RESULTADO_PEDAGOGICA: 'Resultado da apresentação pedagógica', NIVEL_INTERESSE: 'Nível de interesse', CANAL: 'Canais de contato', DESFECHO_REUNIAO: 'Desfecho de reunião', TIPO_REUNIAO: 'Tipos de reunião e atendimento', AREA_DEMANDA: 'Áreas de demanda', SEGMENTO: 'Segmentos', MOTIVO_PERDA: 'Motivos de não avanço' };
+const NOMES_PARAM = { INTERVALO_TENTATIVAS_PRE_DIAS: 'Dias entre uma tentativa e a próxima', MAX_TENTATIVAS_PRE: 'Máximo de tentativas de contato', MAX_TENTATIVAS_POS: 'Máximo de tentativas no pós-comercial', FOLLOWUP_AMOSTRA_DIAS: 'Retorno após envio de amostra (dias)', FOLLOWUP_DEGUSTACAO_DIAS: 'Retorno após degustação (dias)', DURACAO_PADRAO_CONTRATO_ANOS: 'Duração padrão do contrato (anos)', JANELA_RESCISAO_INICIO: 'Início da janela de rescisão', JANELA_RESCISAO_FIM: 'Fim da janela de rescisão', MULTA_RESCISAO_FORA_JANELA: 'Multa por rescisão fora da janela', SETOR_POS_VENDA: 'Setor que recebe o onboarding' };
+const PARAM_NUM = ['MAX_TENTATIVAS_PRE', 'MAX_TENTATIVAS_POS', 'INTERVALO_TENTATIVAS_PRE_DIAS', 'FOLLOWUP_AMOSTRA_DIAS', 'FOLLOWUP_DEGUSTACAO_DIAS', 'DURACAO_PADRAO_CONTRATO_ANOS'];
+const SISTEMA_LISTAS = { STATUS_POS_COMERCIAL: ['Ganho', 'Perdido'] };
+async function configurar(d, msg) {
+  setOcupado(true);
+  try {
+    const r = await api('configurar', d);
+    aplicarMudancas(r.mudancas);
+    Object.assign(D, { listas: r.config.listas, config: r.config.config, listasTodas: r.config.listasTodas, configTodas: r.config.configTodas });
+    redesenhar(); if (msg) toast(msg);
+    return r.resultado;
+  } finally { setOcupado(false); }
+}
 function configPage() {
-  return heading('O QUE SUSTENTA O SISTEMA', 'Configurações', 'Listas e parâmetros lidos da planilha.', (eu().gestor ? btn('⬆ Importar escolas', 'import') : '') + btn('↻ Atualizar dados', 'refresh', 'secondary') + btn('Alterar minha senha', 'change-pass', 'secondary'))
-    + `<div class="notice">Planilha conectada: <strong>${esc(D.planilha)}</strong> · versão ${esc(D.versao)} · dados carregados em ${dataHora(D.carregadoEm)}. Para mudar listas ou parâmetros, edite as abas LISTAS e CONFIGURACOES diretamente na planilha e clique em “Atualizar dados”.</div>`
-    + `<div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>Parâmetros</h2></div><div class="table-wrap"><table><thead><tr><th>CHAVE</th><th>VALOR</th><th>DESCRIÇÃO</th></tr></thead><tbody>${Object.entries(D.config).map(([k, c]) => `<tr><td>${esc(k)}</td><td>${esc(c.valor)}${c.ano ? ' <small>(' + esc(c.ano) + ')</small>' : ''}</td><td>${esc(c.descricao)}</td></tr>`).join('')}</tbody></table></div></section>`
-    + `<section class="panel"><div class="panel-head"><h2>Etapas dos checklists</h2></div><div class="table-wrap"><table><thead><tr><th>PROCESSO</th><th>ORDEM</th><th>ETAPA</th><th>OBRIG.</th><th>PRAZO</th></tr></thead><tbody>${T('CHECKLIST_ETAPAS').filter(e => sim(e.ATIVO)).sort((a, b) => String(a.PROCESSO).localeCompare(b.PROCESSO) || a.ORDEM - b.ORDEM).map(e => `<tr><td>${esc(e.PROCESSO)}</td><td>${esc(e.ORDEM)}</td><td>${esc(e.NOME)}${e.GATILHO ? ' ' + badge('libera pedagógico', 'orange') : ''}</td><td>${sim(e.OBRIGATORIA) ? 'Sim' : 'Opcional'}</td><td>${Number(e.PRAZO_DIAS) ? e.PRAZO_DIAS + ' dias após o anterior' : '—'}</td></tr>`).join('')}</tbody></table></div><p class="visual-tip">Para mudar nomes, ordem ou prazos, edite a aba CHECKLIST_ETAPAS da planilha. Vale para as próximas contratações.</p></section>`
-    + `<section class="panel"><div class="panel-head"><h2>Listas</h2></div>${Object.entries(D.listas).map(([k, vs]) => `<h4 style="margin:14px 0 8px">${esc(k)}</h4><div class="permissions">${vs.map(v => badge(v, '')).join('')}</div>`).join('')}</section></div>`;
+  if (!eu().gestor) return heading('ACESSO RESTRITO', 'Configurações', 'Esta área é exclusiva para gestores.');
+  const abas = [['parametros', 'Parâmetros'], ['listas', 'Listas'], ['etapas', 'Etapas dos checklists']];
+  const corpo = cfgAba === 'listas' ? cfgListas() : cfgAba === 'etapas' ? cfgEtapas() : cfgParametros();
+  return heading('O QUE SUSTENTA O SISTEMA', 'Configurações', 'Ajuste parâmetros, listas e etapas sem mexer na planilha. Visível só para gestores.', btn('⬆ Importar escolas', 'import', 'secondary') + btn('↻ Atualizar dados', 'refresh', 'secondary'))
+    + `<div class="toolbar"><div class="segmented" role="tablist" aria-label="Seções das configurações">${abas.map(([k, l]) => `<button role="tab" data-action="cfg-aba" data-ref="${k}" class="${cfgAba === k ? 'active' : ''}" aria-selected="${cfgAba === k}">${l}</button>`).join('')}</div><span class="spacer"></span><small class="secondary-text">Planilha: <strong>${esc(D.planilha)}</strong> · servidor ${esc(D.versao)}</small></div>` + corpo;
+}
+function cfgParametros() {
+  const linhas = (D.configTodas || []).slice().sort((a, b) => String(a.CHAVE).localeCompare(b.CHAVE));
+  const faltaSetor = !linhas.some(p => p.CHAVE === 'SETOR_POS_VENDA');
+  return `${faltaSetor ? `<div class="notice">O parâmetro <strong>SETOR_POS_VENDA</strong> ainda não existe. Sem ele, o sistema usa “Pedagógico Pós”. ${btn('Criar agora', 'cfg-param-novo', 'text', 'data-ref="SETOR_POS_VENDA"')}</div>` : ''}
+  <section class="panel"><div class="panel-head"><h2>Parâmetros</h2>${btn('+ Novo parâmetro', 'cfg-param-novo')}</div><div class="table-wrap"><table><thead><tr><th>PARÂMETRO</th><th>VALOR</th><th>ANO</th><th>DESCRIÇÃO</th><th></th></tr></thead><tbody>${linhas.map((p, i) => `<tr class="${sim(p.ATIVO) ? '' : 'inactive'}"><td><strong>${esc(NOMES_PARAM[p.CHAVE] || p.CHAVE)}</strong><br><small class="secondary-text">${esc(p.CHAVE)}</small>${sim(p.ATIVO) ? '' : ' ' + badge('Inativo', 'red')}</td><td><strong>${esc(p.VALOR) || '—'}</strong></td><td>${esc(p.ANO_REFERENCIA) || '—'}</td><td>${esc(p.DESCRICAO)}</td><td><button class="icon-button" data-action="cfg-param" data-ref="${i}" aria-label="Editar ${esc(p.CHAVE)}">✎</button></td></tr>`).join('')}</tbody></table></div><p class="visual-tip">Valores numéricos (tentativas, dias, anos) são conferidos antes de salvar. Desativar um parâmetro faz o sistema voltar ao valor padrão.</p></section>`;
+}
+function cfgListas() {
+  const cats = [...new Set((D.listasTodas || []).map(l => l.CATEGORIA))];
+  return `<div class="toolbar"><span class="spacer"></span>${btn('+ Nova lista', 'cfg-lista-nova')}</div><div class="section-grid">${cats.map(cat => {
+    const itens = D.listasTodas.filter(l => l.CATEGORIA === cat);
+    return `<section class="panel cfg-card"><div class="panel-head"><h2>${esc(NOMES_LISTAS[cat] || cat)}</h2>${btn('+ Item', 'cfg-item-novo', 'text', `data-ref="${esc(cat)}"`)}</div><small class="secondary-text">${esc(cat)}</small><ul class="cfg-lista">${itens.map((it, i) => `<li class="${sim(it.ATIVO) ? '' : 'inactive'}"><span class="cfg-ordem"><button class="icon-button mini" data-action="cfg-item-mover" data-ref="${esc(cat)}" data-pos="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Subir ${esc(it.VALOR)}">↑</button><button class="icon-button mini" data-action="cfg-item-mover" data-ref="${esc(cat)}" data-pos="${i}" data-dir="1" ${i === itens.length - 1 ? 'disabled' : ''} aria-label="Descer ${esc(it.VALOR)}">↓</button></span><span class="cfg-valor">${esc(it.VALOR)}${(SISTEMA_LISTAS[cat] || []).includes(String(it.VALOR)) ? ' ' + badge('do sistema', '') : ''}${sim(it.ATIVO) ? '' : ' ' + badge('Inativo', 'red')}</span><button class="icon-button mini" data-action="cfg-item" data-ref="${esc(cat)}" data-pos="${i}" aria-label="Editar ${esc(it.VALOR)}">✎</button></li>`).join('')}</ul></section>`;
+  }).join('')}</div><p class="visual-tip">Ao renomear um item, os registros que já usam o nome antigo são atualizados juntos. Itens desativados somem das opções novas, mas continuam nos registros antigos.</p>`;
+}
+function cfgEtapas() {
+  return ['COMERCIAL', 'PEDAGOGICO'].map(proc => {
+    const et = T('CHECKLIST_ETAPAS').filter(e => e.PROCESSO === proc).sort((a, b) => Number(a.ORDEM) - Number(b.ORDEM));
+    return `<section class="panel" style="margin-bottom:18px"><div class="panel-head"><h2>Checklist ${proc === 'COMERCIAL' ? 'comercial (após o ganho)' : 'pedagógico (pós-venda)'}</h2>${btn('+ Etapa', 'cfg-etapa-nova', 'text', `data-ref="${proc}"`)}</div><div class="table-wrap"><table><thead><tr><th>ORDEM</th><th>ETAPA</th><th>TIPO</th><th>PRAZO</th><th></th></tr></thead><tbody>${et.map((e, i) => `<tr class="${sim(e.ATIVO) ? '' : 'inactive'}"><td><span class="cfg-ordem"><button class="icon-button mini" data-action="cfg-etapa-mover" data-ref="${proc}" data-pos="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Subir">↑</button><button class="icon-button mini" data-action="cfg-etapa-mover" data-ref="${proc}" data-pos="${i}" data-dir="1" ${i === et.length - 1 ? 'disabled' : ''} aria-label="Descer">↓</button></span></td><td><strong>${esc(e.NOME)}</strong>${e.GATILHO ? ' ' + badge('libera o pedagógico', 'orange') : ''}${sim(e.ATIVO) ? '' : ' ' + badge('Inativa', 'red')}</td><td>${sim(e.OBRIGATORIA) ? 'Obrigatória' : 'Opcional'}</td><td>${Number(e.PRAZO_DIAS) ? e.PRAZO_DIAS + ' dias após a anterior' : '—'}</td><td><button class="icon-button" data-action="cfg-etapa" data-ref="${esc(e.ID_ETAPA)}" aria-label="Editar etapa">✎</button></td></tr>`).join('')}</tbody></table></div></section>`;
+  }).join('') + '<p class="visual-tip">As mudanças valem para as próximas contratações. Checklists que já começaram mantêm as etapas que tinham.</p>';
+}
+function formParametro(p, chaveSugerida) {
+  const novo = !p, num = p && PARAM_NUM.includes(p.CHAVE);
+  showForm(novo ? 'Novo parâmetro' : 'Editar parâmetro', (novo ? campo('Chave (maiúsculas e _)', 'CHAVE', 'text', chaveSugerida || '', true, 'style="text-transform:uppercase" pattern="[A-Za-z][A-Za-z0-9_]{2,60}"') : `<p class="subtitle"><strong>${esc(NOMES_PARAM[p.CHAVE] || p.CHAVE)}</strong><br><small>${esc(p.CHAVE)}</small></p>${num ? '' : campo('Chave', 'CHAVE', 'text', p.CHAVE, true, 'style="text-transform:uppercase"')}`)
+    + linha(campo('Valor', 'VALOR', num ? 'number' : 'text', p ? p.VALOR : (chaveSugerida === 'SETOR_POS_VENDA' ? 'Pedagógico Pós' : ''), num, num ? 'min="1" step="1"' : ''), campo('Ano de referência (opcional)', 'ANO_REFERENCIA', 'number', p ? p.ANO_REFERENCIA : '', false, 'min="2000" max="2100"'))
+    + texto('Descrição', 'DESCRICAO', p ? p.DESCRICAO : (chaveSugerida === 'SETOR_POS_VENDA' ? 'Pessoas deste setor recebem o checklist pedagógico quando o contrato é assinado' : '')) + marca('Ativo', 'ATIVO', p ? sim(p.ATIVO) : true),
+    v => configurar({ tipo: 'parametro', ...v, CHAVE: (v.CHAVE || p.CHAVE).toUpperCase(), ...(p ? { chaveOriginal: p.CHAVE, anoOriginal: p.ANO_REFERENCIA } : {}) }, 'Parâmetro salvo.'));
+}
+function formItemLista(cat, it) {
+  const sistema = it && (SISTEMA_LISTAS[cat] || []).includes(String(it.VALOR));
+  showForm(it ? 'Editar item' : 'Novo item', `<p class="subtitle">${esc(NOMES_LISTAS[cat] || cat)}</p>` + (sistema ? `<div class="notice">“${esc(it.VALOR)}” é usado pela lógica do sistema e não pode ser renomeado nem desativado.</div>` : campo('Nome do item', 'VALOR', 'text', it ? it.VALOR : '', true) + marca('Ativo (aparece nas opções)', 'ATIVO', it ? sim(it.ATIVO) : true) + (it ? '<p class="visual-tip">Se você renomear, os registros que usam o nome antigo são atualizados juntos.</p>' : '')),
+    v => sistema ? true : configurar({ tipo: 'lista', CATEGORIA: cat, VALOR: v.VALOR, ATIVO: v.ATIVO, ...(it ? { valorOriginal: it.VALOR } : {}) }).then(r => toast(r && r.atualizados ? `Item salvo. ${r.atualizados} registro(s) atualizado(s).` : 'Item salvo.')), sistema ? 'Fechar' : 'Salvar');
+}
+function formNovaLista() {
+  showForm('Nova lista', campo('Nome da lista (maiúsculas e _)', 'CATEGORIA', 'text', '', true, 'style="text-transform:uppercase" placeholder="Ex.: ORIGEM_LEAD"') + campo('Primeiro item', 'VALOR', 'text', '', true) + '<p class="visual-tip">Listas novas ficam guardadas na aba LISTAS. Para virar uma opção dentro de algum formulário do CRM, me peça para ligar a lista ao campo.</p>',
+    v => configurar({ tipo: 'lista', CATEGORIA: v.CATEGORIA.toUpperCase(), VALOR: v.VALOR }, 'Lista criada.'));
+}
+function formEtapa(proc, e) {
+  showForm(e ? 'Editar etapa' : 'Nova etapa', `<p class="subtitle">Checklist ${proc === 'COMERCIAL' ? 'comercial' : 'pedagógico'}</p>` + campo('Nome da etapa', 'NOME', 'text', e ? e.NOME : '', true)
+    + linha(campo('Prazo (dias após a etapa anterior; 0 = sem prazo)', 'PRAZO_DIAS', 'number', e ? (e.PRAZO_DIAS || 0) : 0, false, 'min="0" max="365"'))
+    + marca('Obrigatória (sem a opção “Não se aplica”)', 'OBRIGATORIA', e ? sim(e.OBRIGATORIA) : true)
+    + (proc === 'COMERCIAL' ? marca('Ao marcar esta etapa, liberar o checklist pedagógico', 'libera', e ? e.GATILHO === 'LIBERA_PEDAGOGICO' : false) : '')
+    + marca('Ativa', 'ATIVO', e ? sim(e.ATIVO) : true) + '<p class="visual-tip">Vale para as próximas contratações. Só uma etapa pode liberar o pedagógico: marcar aqui tira a marcação da outra.</p>',
+    v => { const { libera, ...r } = v; return configurar({ tipo: 'etapa', PROCESSO: proc, ...r, GATILHO: libera ? 'LIBERA_PEDAGOGICO' : '', ...(e ? { ID_ETAPA: e.ID_ETAPA } : {}) }, 'Etapa salva.'); });
+}
+async function moverItemLista(cat, pos, dir) {
+  const vals = D.listasTodas.filter(l => l.CATEGORIA === cat).map(l => String(l.VALOR)), j = pos + dir;
+  if (j < 0 || j >= vals.length) return;
+  [vals[pos], vals[j]] = [vals[j], vals[pos]];
+  await configurar({ tipo: 'ordenarLista', CATEGORIA: cat, valores: vals }, 'Ordem atualizada.');
+}
+async function moverEtapa(proc, pos, dir) {
+  const ids = T('CHECKLIST_ETAPAS').filter(e => e.PROCESSO === proc).sort((a, b) => Number(a.ORDEM) - Number(b.ORDEM)).map(e => e.ID_ETAPA), j = pos + dir;
+  if (j < 0 || j >= ids.length) return;
+  [ids[pos], ids[j]] = [ids[j], ids[pos]];
+  await configurar({ tipo: 'ordenarEtapas', PROCESSO: proc, ids }, 'Ordem atualizada.');
 }
 
 /* ---------- Formulários ---------- */
@@ -1002,6 +1084,16 @@ addEventListener('click', async e => {
       case 'edit-user': formUsuario(achar('USUARIOS', 'ID_USUARIO', ref)); break;
       case 'reset-pass': if (confirmar(b, 'Clique de novo para confirmar')) { const r = await api('resetarSenha', { idUsuario: ref }); toast(r.mensagem); } break;
       case 'export-csv': exportarCsv(); break;
+      case 'cfg-aba': cfgAba = ref; render(); break;
+      case 'cfg-param': formParametro(D.configTodas.slice().sort((a, b) => String(a.CHAVE).localeCompare(b.CHAVE))[Number(ref)]); break;
+      case 'cfg-param-novo': formParametro(null, ref); break;
+      case 'cfg-lista-nova': formNovaLista(); break;
+      case 'cfg-item-novo': formItemLista(ref, null); break;
+      case 'cfg-item': formItemLista(ref, D.listasTodas.filter(l => l.CATEGORIA === ref)[Number(b.dataset.pos)]); break;
+      case 'cfg-item-mover': await moverItemLista(ref, Number(b.dataset.pos), Number(b.dataset.dir)); break;
+      case 'cfg-etapa-nova': formEtapa(ref, null); break;
+      case 'cfg-etapa': { const et = T('CHECKLIST_ETAPAS').find(x => x.ID_ETAPA === ref); formEtapa(et.PROCESSO, et); break; }
+      case 'cfg-etapa-mover': await moverEtapa(ref, Number(b.dataset.pos), Number(b.dataset.dir)); break;
       case 'ck-toggle': { const c = T('CHECKLIST').find(x => x.ID_ITEM_CHECK === ref); if (c) marcarCk(ref, ckFeito(c) ? 'reabrir' : 'concluir', b); break; }
       case 'ck-na': marcarCk(ref, 'nao_se_aplica', b); break;
       case 'ck-iniciar': await gravar('iniciarChecklist', { ID_CONTRATACAO: ref }, 'Checklist ativado.'); break;
