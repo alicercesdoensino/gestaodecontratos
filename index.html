@@ -105,6 +105,17 @@ span.ck-box{cursor:default}
 .check-inline{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
 @media (max-width:860px){.task-board{grid-template-columns:1fr}}
 @media(max-width:760px){.toolbar .segmented{max-width:100%;overflow-x:auto;flex-wrap:nowrap}.toolbar .segmented button{white-space:nowrap}}
+
+/* v1.9 · Lista de clientes e regiões */
+.client-list td{vertical-align:middle;padding-top:10px;padding-bottom:10px}
+.mini-progress{display:flex;align-items:center;gap:8px;min-width:110px}
+.mini-progress .progress{flex:1;margin:0;min-width:70px}
+.mini-progress small{white-space:nowrap;font-weight:600}
+.region-panel{margin-bottom:18px}
+.region-panel .funnel-row{grid-template-columns:120px 1fr 36px 170px;margin:10px 0}
+.region-panel .funnel-row strong{font-size:14px}
+.dim-row{opacity:.4}
+@media(max-width:760px){.region-panel .funnel-row{grid-template-columns:95px 1fr 30px}.region-panel .funnel-row small{grid-column:1/-1}}
 </style>
   <script>
     /* ===== ENDEREÇO DA API (link /exec do Apps Script) ===== */
@@ -122,7 +133,7 @@ span.ck-box{cursor:default}
   <div class="shell">
     <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola ou código ELP…" aria-label="Buscar escola em todo o CRM"></label><button class="sync" data-action="refresh" id="sync-status" title="Atualizar dados da planilha" style="background:none">Tudo salvo</button><span class="date-label" id="date-label"></span><span class="avatar small" id="top-avatar"></span></div></header>
     <main id="main" tabindex="-1"></main>
-    <footer>ALICERCES · CRM EDITORIAL <span>Versão da tela 1.8 · 02/10/2026 · Dados gravados na planilha Google</span></footer>
+    <footer>ALICERCES · CRM EDITORIAL <span>Versão da tela 1.9 · 02/10/2026 · Dados gravados na planilha Google</span></footer>
   </div>
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-title"><div id="form-content"></div></dialog>
@@ -182,6 +193,11 @@ const store = { get(k) { try { return localStorage.getItem(k); } catch { return 
 let token = store.get(TOKEN_KEY) || '';
 let D = null; // { usuario, tabelas, listas, config, planilha }
 let visaoTarefas = 'minhas', viewTarefas = 'lista', areaFiltro = '';
+let regiao = '', viewClientes = 'cards'; // região vale para Prospecção, Clientes e Relatórios (fica ao trocar de página)
+const REGIOES = { 'Sul': ['PR', 'SC', 'RS'], 'Sudeste': ['SP', 'RJ', 'MG', 'ES'], 'Centro-Oeste': ['MT', 'MS', 'GO', 'DF'], 'Norte': ['AM', 'PA', 'AC', 'RO', 'RR', 'AP', 'TO'], 'Nordeste': ['MA', 'PI', 'CE', 'RN', 'PB', 'PE', 'AL', 'SE', 'BA'] };
+const regiaoDe = uf => Object.keys(REGIOES).find(r => REGIOES[r].includes(String(uf || '').trim().toUpperCase())) || 'Sem UF';
+const naRegiao = e => !regiao || (e && regiaoDe(e.UF) === regiao);
+const filtroRegiao = () => `<select id="region-filter" aria-label="Região"><option value="">Todas as regiões</option>${Object.keys(REGIOES).concat('Sem UF').map(r => `<option ${regiao === r ? 'selected' : ''}>${r}</option>`).join('')}</select>`;
 let page = 'inicio', view = 'kanban', query = '', owner = '', statusFilter = '', detailId = null, detailTab = 0, dragId = null;
 let mes = new Date().getMonth(), ano = new Date().getFullYear(), ocupado = false;
 const $ = id => document.getElementById(id);
@@ -454,13 +470,13 @@ function filtrarOps(lista) {
   const q = norm(query);
   return lista.filter(o => {
     const e = escola(o.ID_ESCOLA), c = principal(o.ID_ESCOLA);
-    if (!e) return false;
+    if (!e || !naRegiao(e)) return false;
     if (owner && o.RESPONSAVEL_ATUAL !== owner) return false;
     return !q || norm([e.NOME_ESCOLA, e.CIDADE, e.UF, e.CNPJ, e.CODIGO_ELP, c && c.NOME, o.ORIGEM_LEAD].join(' ')).includes(q);
   });
 }
 function filtros(comVisao, extra = '') {
-  return `<div class="toolbar"><input id="page-search" type="search" value="${esc(query)}" placeholder="Buscar escola, cidade, CNPJ, código ELP ou contato" aria-label="Filtrar"><select id="owner-filter" aria-label="Filtrar por responsável">${optsUsuarios(owner, 'Toda a equipe')}</select><span class="spacer"></span>${extra}${comVisao ? `<div class="segmented" aria-label="Visualização"><button data-action="view-kanban" class="${view === 'kanban' ? 'active' : ''}" aria-pressed="${view === 'kanban'}">▥ Kanban</button><button data-action="view-list" class="${view === 'list' ? 'active' : ''}" aria-pressed="${view === 'list'}">☰ Lista</button></div>` : ''}</div>`;
+  return `<div class="toolbar"><input id="page-search" type="search" value="${esc(query)}" placeholder="Buscar escola, cidade, CNPJ, código ELP ou contato" aria-label="Filtrar"><select id="owner-filter" aria-label="Filtrar por responsável">${optsUsuarios(owner, 'Toda a equipe')}</select>${filtroRegiao()}<span class="spacer"></span>${extra}${comVisao ? `<div class="segmented" aria-label="Visualização"><button data-action="view-kanban" class="${view === 'kanban' ? 'active' : ''}" aria-pressed="${view === 'kanban'}">▥ Kanban</button><button data-action="view-list" class="${view === 'list' ? 'active' : ''}" aria-pressed="${view === 'list'}">☰ Lista</button></div>` : ''}</div>`;
 }
 function prospeccao() {
   const etapas = L('ETAPA_PROSPECCAO');
@@ -481,18 +497,39 @@ function cardLead(o) {
 function clientesPage() {
   const q = norm(query);
   const lista = clientes().filter(e => {
+    if (!naRegiao(e)) return false;
     const anos = T('ANOS_LETIVOS').filter(a => a.ID_ESCOLA === e.ID_ESCOLA);
     if (owner && !anos.some(a => a.RESPONSAVEL_COMERCIAL === owner || a.RESPONSAVEL_PEDAGOGICO === owner)) return false;
     return !q || norm([e.NOME_ESCOLA, e.CIDADE, e.UF, e.CNPJ, e.CODIGO_ELP, (principal(e.ID_ESCOLA) || {}).NOME].join(' ')).includes(q);
-  });
-  return heading('PARCERIAS QUE CONTINUAM', 'Clientes', 'Uma visão completa de cada escola, do contrato à renovação.', eu().gestor ? btn('⬆ Importar clientes', 'import', 'secondary', 'data-tipo="CLIENTES"') + btn('⬆ Importar kits do relatório', 'import', 'secondary', 'data-tipo="CONTRATO_ERP"') : '') + filtros(false)
+  }).sort((a, b) => String(a.NOME_ESCOLA).localeCompare(b.NOME_ESCOLA, 'pt-BR'));
+  const visao = `<div class="segmented" aria-label="Visualização"><button data-action="cli-view" data-ref="cards" class="${viewClientes === 'cards' ? 'active' : ''}" aria-pressed="${viewClientes === 'cards'}">▦ Cards</button><button data-action="cli-view" data-ref="lista" class="${viewClientes === 'lista' ? 'active' : ''}" aria-pressed="${viewClientes === 'lista'}">☰ Lista</button></div>`;
+  const topo = heading('PARCERIAS QUE CONTINUAM', 'Clientes', 'Uma visão completa de cada escola, do contrato à renovação.', eu().gestor ? btn('⬆ Importar clientes', 'import', 'secondary', 'data-tipo="CLIENTES"') + btn('⬆ Importar kits do relatório', 'import', 'secondary', 'data-tipo="CONTRATO_ERP"') : '') + filtros(false, `<small class="secondary-text">${lista.length} cliente(s)</small>` + visao);
+  const vazioTxt = !lista.length ? vazio(clientes().length ? 'Nenhum cliente para estes filtros.' : 'Nenhum cliente ainda. Quando você registrar uma contratação, a escola aparece aqui.') : '';
+  if (viewClientes === 'lista') return topo + listaClientes(lista) + vazioTxt;
+  return topo
     + `<div class="section-grid">${lista.map(e => {
       const c = contratosDe(e.ID_ESCOLA).slice(-1)[0], ks = c ? kitsDoContrato(c.ID_CONTRATO) : [], ctc = c && T('CONTRATACOES').find(x => x.ID_CONTRATACAO === c.ID_CONTRATACAO);
       const ckC = ctc ? progressoCk(itensCk(ctc.ID_CONTRATACAO, 'COMERCIAL')) : null, ckP = ctc ? progressoCk(itensCk(ctc.ID_CONTRATACAO, 'PEDAGOGICO')) : null, p = principal(e.ID_ESCOLA);
       const ano = T('ANOS_LETIVOS').filter(a => a.ID_ESCOLA === e.ID_ESCOLA).slice(-1)[0];
       const ren = T('RENOVACOES').filter(r => r.ID_ESCOLA === e.ID_ESCOLA).slice(-1)[0];
       return `<article class="panel client-card"><span class="school-icon">${esc(iniciais(e.NOME_ESCOLA))}</span><h2>${escolaBtn(e)}</h2><p>${e.CODIGO_ELP ? `<strong>ELP ${esc(e.CODIGO_ELP)}</strong> · ` : ''}${esc(e.CIDADE || '')}${e.UF ? ' · ' + esc(e.UF) : ''}${e.FAIXA_ALUNOS ? ' · ' + esc(e.FAIXA_ALUNOS) + ' alunos' : ''}${e.CLIENTE_DESDE ? '<br><small>Cliente desde ' + esc(e.CLIENTE_DESDE) + '</small>' : ''}</p><div class="client-meta">${e.CODIGO_ELP ? '' : badge('Sem código ELP', 'red')}${badge(c ? c.STATUS : 'Sem contrato')}${c ? badge(`Anos ${c.ANO_LETIVO_INICIAL}–${c.ANO_LETIVO_FINAL}`, 'orange') : ''}${ren ? badge('Renovação: ' + ren.STATUS, ren.STATUS === 'Renovada' ? 'teal' : 'purple') : ''}</div><div class="card-info">Comercial: <strong>${esc(nomeUsuario(ano && ano.RESPONSAVEL_COMERCIAL))}</strong><br>Pedagógico: <strong>${esc(nomeUsuario(ano && ano.RESPONSAVEL_PEDAGOGICO))}</strong><br>Contato: <strong>${esc(p ? p.NOME : '—')}</strong></div>${ctc && ckC.t ? `<small>Comercial <strong>${ckC.f}/${ckC.t}</strong></small><div class="progress"><span style="width:${ckC.pct}%"></span></div>${ckP.t ? `<small>Pedagógico <strong>${ckP.f}/${ckP.t}</strong></small><div class="progress ped"><span style="width:${ckP.pct}%"></span></div>` : '<small class="secondary-text">Pedagógico: aguardando assinatura</small>'}` : `<small class="secondary-text">${c ? (ctc ? 'Checklist não ativado' : 'Contrato importado') : 'Contrato ainda não registrado'}</small>`}<div class="client-footer"><span>${ks.length} itens · ${dinheiro(valorKits(ks))}</span>${btn('Cliente 360° →', 'open-school', 'text', `data-id="${esc(e.ID_ESCOLA)}"`)}</div></article>`;
-    }).join('')}</div>${!lista.length ? vazio('Nenhum cliente ainda. Quando você registrar uma contratação, a escola aparece aqui.') : ''}`;
+    }).join('')}</div>${vazioTxt}`;
+}
+function dadosCliente(e) {
+  const c = contratosDe(e.ID_ESCOLA).slice(-1)[0], ks = c ? kitsDoContrato(c.ID_CONTRATO) : [], ctc = c && T('CONTRATACOES').find(x => x.ID_CONTRATACAO === c.ID_CONTRATACAO);
+  const ckC = ctc ? progressoCk(itensCk(ctc.ID_CONTRATACAO, 'COMERCIAL')) : null, ckP = ctc ? progressoCk(itensCk(ctc.ID_CONTRATACAO, 'PEDAGOGICO')) : null;
+  const ano = T('ANOS_LETIVOS').filter(a => a.ID_ESCOLA === e.ID_ESCOLA).slice(-1)[0];
+  return { c, ks, ctc, ckC, ckP, ano };
+}
+function barraMini(ck, ped, semTxt) {
+  if (!ck || !ck.t) return `<small class="secondary-text">${semTxt}</small>`;
+  return `<div class="mini-progress" title="${ck.f} de ${ck.t} etapas"><div class="progress ${ped ? 'ped' : ''}"><span style="width:${ck.pct}%"></span></div><small>${ck.f}/${ck.t}</small></div>`;
+}
+function listaClientes(lista) {
+  return `<section class="panel table-wrap client-list"><table><thead><tr><th>ESCOLA</th><th>REGIÃO</th><th>CONTRATO</th><th>RESPONSÁVEIS</th><th>COMERCIAL</th><th>PEDAGÓGICO</th><th>KITS</th><th></th></tr></thead><tbody>${lista.map(e => {
+    const { c, ks, ctc, ckC, ckP, ano } = dadosCliente(e);
+    return `<tr><td>${escolaBtn(e)}<br><small class="secondary-text">${e.CODIGO_ELP ? 'ELP ' + esc(e.CODIGO_ELP) + ' · ' : '<span class="danger">sem ELP</span> · '}${esc(e.CIDADE || '')}${e.UF ? '/' + esc(e.UF) : ''}</small></td><td><small>${esc(regiaoDe(e.UF))}</small></td><td>${c ? `${badge(c.STATUS, c.STATUS === 'Vigente' ? 'teal' : 'red')}<br><small class="secondary-text">${esc(c.ANO_LETIVO_INICIAL)}–${esc(c.ANO_LETIVO_FINAL)}</small>` : '<small class="secondary-text">Sem contrato</small>'}</td><td><small>C: ${esc(nomeUsuario(ano && ano.RESPONSAVEL_COMERCIAL))}<br>P: ${esc(nomeUsuario(ano && ano.RESPONSAVEL_PEDAGOGICO))}</small></td><td>${barraMini(ckC, false, c ? (ctc ? 'não ativado' : 'importado') : '—')}</td><td>${barraMini(ckP, true, ctc && ckC && ckC.t ? 'aguardando assinatura' : '—')}</td><td><small>${ks.length} itens<br>${dinheiro(valorKits(ks))}</small></td><td>${btn('Abrir', 'open-school', 'text', `data-id="${esc(e.ID_ESCOLA)}"`)}</td></tr>`;
+  }).join('')}</tbody></table></section>`;
 }
 
 /* ---------- Checklists ---------- */
@@ -711,20 +748,26 @@ function equipePage() {
 
 /* ---------- Relatórios ---------- */
 function relatoriosPage() {
-  const cs = T('CONTRATOS').filter(c => c.STATUS === 'Vigente'), ks = T('KITS_CONTRATADOS').filter(k => cs.some(c => c.ID_CONTRATO === k.ID_CONTRATO));
-  const base = T('OPORTUNIDADES').length, ganhos = T('OPORTUNIDADES').filter(o => o.STATUS === 'Ganho').length;
-  const motivos = {}; perdidas().forEach(o => { motivos[o.MOTIVO_PERDA] = (motivos[o.MOTIVO_PERDA] || 0) + 1; });
+  const daReg = x => naRegiao(escola(x.ID_ESCOLA));
+  const ops = T('OPORTUNIDADES').filter(daReg), leadsR = leads().filter(daReg), perdidasR = perdidas().filter(daReg);
+  const cs = T('CONTRATOS').filter(c => c.STATUS === 'Vigente' && daReg(c)), ks = T('KITS_CONTRATADOS').filter(k => cs.some(c => c.ID_CONTRATO === k.ID_CONTRATO));
+  const base = ops.length, ganhos = ops.filter(o => o.STATUS === 'Ganho').length;
+  const motivos = {}; perdidasR.forEach(o => { motivos[o.MOTIVO_PERDA] = (motivos[o.MOTIVO_PERDA] || 0) + 1; });
   const maxM = Math.max(1, ...Object.values(motivos));
-  const origens = {}; T('OPORTUNIDADES').forEach(o => { const k = o.ORIGEM_LEAD || 'Não informada'; origens[k] = (origens[k] || 0) + 1; });
+  const origens = {}; ops.forEach(o => { const k = o.ORIGEM_LEAD || 'Não informada'; origens[k] = (origens[k] || 0) + 1; });
+  const regs = Object.keys(REGIOES).concat('Sem UF').map(r => ({ r, cli: clientes().filter(e => regiaoDe(e.UF) === r).length, pro: leads().filter(o => regiaoDe((escola(o.ID_ESCOLA) || {}).UF) === r).length })).filter(x => x.r !== 'Sem UF' || x.cli || x.pro);
+  const maxR = Math.max(1, ...regs.map(x => x.cli)), totCli = clientes().length;
   return heading('DADOS QUE ORIENTAM O CUIDADO', 'Relatórios', 'Indicadores calculados com os dados da planilha.', btn('Exportar escolas (CSV)', 'export-csv', 'secondary'))
-    + `<section class="stats">${[[dinheiro(valorKits(ks)), 'Valor de referência dos kits', 'Contratos vigentes'], [ks.reduce((a, k) => a + Number(k.QUANTIDADE_CONTRATADA || 0), 0), 'Kits contratados', 'Contratos vigentes'], [base ? Math.round(ganhos / base * 100) + '%' : '—', 'Oportunidades ganhas', `${ganhos} de ${base} registradas`], [perdidas().length, 'Não avançaram', 'Podem ser reabertas']].map(([n, t, s]) => `<div class="stat"><div class="stat-top">${t}</div><div class="stat-value">${n}</div><div class="stat-note">${s}</div></div>`).join('')}</section>`
-    + `<div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>Oportunidades por responsável</h2>${badge('Em andamento')}</div><div class="report-bars">${ativos().map(u => { const n = leads().filter(o => o.RESPONSAVEL_ATUAL === u.ID_USUARIO).length; return `<div class="funnel-row"><span>${esc(u.NOME)}</span><div class="bar-track"><div class="bar-fill" style="width:${n / (leads().length || 1) * 100}%"></div></div><strong>${n}</strong></div>`; }).join('') || vazio('Sem dados.')}</div></section>`
+    + `<div class="toolbar">${filtroRegiao()}${regiao ? `<small class="secondary-text">Indicadores filtrados pela região <strong>${esc(regiao)}</strong></small>` : ''}</div>`
+    + `<section class="panel region-panel"><div class="panel-head"><h2>Clientes por região</h2>${badge(totCli + ' clientes', 'teal')}</div><div class="report-bars">${regs.map(x => `<div class="funnel-row ${regiao && regiao !== x.r ? 'dim-row' : ''}"><span>${esc(x.r)}</span><div class="bar-track"><div class="bar-fill" style="width:${x.cli / maxR * 100}%"></div></div><strong>${x.cli}</strong><small class="secondary-text">${totCli ? Math.round(x.cli / totCli * 100) : 0}% · ${x.pro} em prospecção</small></div>`).join('')}</div></section>`
+    + `<section class="stats">${[[dinheiro(valorKits(ks)), 'Valor de referência dos kits', 'Contratos vigentes'], [ks.reduce((a, k) => a + Number(k.QUANTIDADE_CONTRATADA || 0), 0), 'Kits contratados', 'Contratos vigentes'], [base ? Math.round(ganhos / base * 100) + '%' : '—', 'Oportunidades ganhas', `${ganhos} de ${base} registradas`], [perdidasR.length, 'Não avançaram', 'Podem ser reabertas']].map(([n, t, s]) => `<div class="stat"><div class="stat-top">${t}</div><div class="stat-value">${n}</div><div class="stat-note">${s}</div></div>`).join('')}</section>`
+    + `<div class="dashboard-grid"><section class="panel"><div class="panel-head"><h2>Oportunidades por responsável</h2>${badge('Em andamento')}</div><div class="report-bars">${ativos().map(u => { const n = leadsR.filter(o => o.RESPONSAVEL_ATUAL === u.ID_USUARIO).length; return `<div class="funnel-row"><span>${esc(u.NOME)}</span><div class="bar-track"><div class="bar-fill" style="width:${n / (leadsR.length || 1) * 100}%"></div></div><strong>${n}</strong></div>`; }).join('') || vazio('Sem dados.')}</div></section>`
     + `<section class="panel"><div class="panel-head"><h2>Motivos de não avanço</h2></div><div class="report-bars">${Object.entries(motivos).sort((a, b) => b[1] - a[1]).map(([m, n]) => `<div class="funnel-row"><span>${esc(m)}</span><div class="bar-track"><div class="bar-fill" style="width:${n / maxM * 100}%"></div></div><strong>${n}</strong></div>`).join('') || vazio('Nenhuma oportunidade encerrada.')}</div></section>`
     + `<section class="panel"><div class="panel-head"><h2>Origem dos leads</h2></div><div class="report-bars">${Object.entries(origens).sort((a, b) => b[1] - a[1]).map(([m, n]) => `<div class="funnel-row"><span>${esc(m)}</span><div class="bar-track"><div class="bar-fill" style="width:${n / (base || 1) * 100}%"></div></div><strong>${n}</strong></div>`).join('') || vazio('Sem dados.')}</div></section>`
-    + `<section class="panel"><div class="panel-head"><h2>Renovações</h2></div>${T('RENOVACOES').map(r => `<div class="agenda-item"><span class="event-line"></span><div><h3>${escolaBtn(escola(r.ID_ESCOLA))}</h3><p>Ano ${esc(r.ANO_LETIVO_DESTINO)} · ${esc(r.STATUS)} · ${esc(nomeUsuario(r.RESPONSAVEL))}</p></div></div>`).join('') || vazio('Nenhuma renovação registrada.')}</section></div>`;
+    + `<section class="panel"><div class="panel-head"><h2>Renovações</h2></div>${T('RENOVACOES').filter(daReg).map(r => `<div class="agenda-item"><span class="event-line"></span><div><h3>${escolaBtn(escola(r.ID_ESCOLA))}</h3><p>Ano ${esc(r.ANO_LETIVO_DESTINO)} · ${esc(r.STATUS)} · ${esc(nomeUsuario(r.RESPONSAVEL))}</p></div></div>`).join('') || vazio('Nenhuma renovação registrada.')}</section></div>`;
 }
 function exportarCsv() {
-  const linhas = [['ID_ESCOLA', 'CODIGO_ELP', 'CLIENTE_DESDE', 'ESCOLA', 'CIDADE', 'UF', 'CNPJ', 'STATUS', 'ETAPA', 'RESPONSAVEL', 'CONTATO', 'TELEFONE', 'EMAIL']].concat(T('ESCOLAS').map(e => { const o = oportunidadeDe(e.ID_ESCOLA) || {}, c = principal(e.ID_ESCOLA) || {}; return [e.ID_ESCOLA, e.CODIGO_ELP, e.CLIENTE_DESDE, e.NOME_ESCOLA, e.CIDADE, e.UF, e.CNPJ, e.STATUS_GERAL, o.ETAPA, nomeUsuario(o.RESPONSAVEL_ATUAL), c.NOME, c.TELEFONE, c.EMAIL]; }));
+  const linhas = [['ID_ESCOLA', 'CODIGO_ELP', 'CLIENTE_DESDE', 'ESCOLA', 'CIDADE', 'UF', 'REGIAO', 'CNPJ', 'STATUS', 'ETAPA', 'RESPONSAVEL', 'CONTATO', 'TELEFONE', 'EMAIL']].concat(T('ESCOLAS').map(e => { const o = oportunidadeDe(e.ID_ESCOLA) || {}, c = principal(e.ID_ESCOLA) || {}; return [e.ID_ESCOLA, e.CODIGO_ELP, e.CLIENTE_DESDE, e.NOME_ESCOLA, e.CIDADE, e.UF, regiaoDe(e.UF), e.CNPJ, e.STATUS_GERAL, o.ETAPA, nomeUsuario(o.RESPONSAVEL_ATUAL), c.NOME, c.TELEFONE, c.EMAIL]; }));
   const csv = '﻿' + linhas.map(l => l.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(';')).join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = `escolas-crm-alicerces-${hoje()}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
@@ -1147,6 +1190,7 @@ addEventListener('click', async e => {
       case 'detail-tab': detailTab = Number(b.dataset.tab); renderDetail(); $('tab-' + detailTab).focus(); break;
       case 'view-kanban': view = 'kanban'; render(); break;
       case 'view-list': view = 'list'; render(); break;
+      case 'cli-view': viewClientes = ref; render(); break;
       case 'prev-month': mes--; if (mes < 0) { mes = 11; ano--; } render(); break;
       case 'next-month': mes++; if (mes > 11) { mes = 0; ano++; } render(); break;
       case 'today-month': mes = new Date().getMonth(); ano = new Date().getFullYear(); render(); break;
@@ -1218,6 +1262,7 @@ addEventListener('change', async e => {
   if (el.id === 'owner-filter') { owner = el.value; render(); }
   if (el.id === 'stage-filter') { statusFilter = el.value; render(); }
   if (el.id === 'area-filter') { areaFiltro = el.value; render(); }
+  if (el.id === 'region-filter') { regiao = el.value; render(); }
   if (el.dataset.task) {
     const t = T('TAREFAS').find(x => x.ID_TAREFA === el.dataset.task); if (!t) return;
     const novo = el.checked ? 'Concluída' : 'Aberta';
