@@ -180,7 +180,7 @@ span.ck-box{cursor:default}
 <body class="auth">
   <div id="auth"></div>
   <aside class="sidebar" id="sidebar">
-    <a class="brand" href="#inicio" aria-label="CRM, início"><span class="brand-mark">a</span><span>CRM</span></a>
+    <a class="brand" href="#inicio" aria-label="Alicerces, início"><span class="brand-mark">a</span><span>alicerces<small>CRM</small></span></a>
     <div class="workspace-label">RELACIONAMENTO COM ESCOLAS</div>
     <nav id="navigation" aria-label="Menu principal"></nav>
     <div class="sidebar-bottom"><div class="demo-chip" id="env-chip" hidden></div><p>Da primeira conversa<br>à próxima conquista.</p><div class="profile" id="profile"></div><div class="sidebar-links"><button class="logout" data-action="change-pass">Alterar minha senha</button><button class="logout" data-action="logout">Sair</button></div></div>
@@ -188,7 +188,7 @@ span.ck-box{cursor:default}
   <div class="shell">
     <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola ou código ELP…" aria-label="Buscar escola em todo o CRM"></label><button class="sync" data-action="refresh" id="sync-status" title="Atualizar dados da planilha" style="background:none">Tudo salvo</button><span class="date-label" id="date-label"></span><span class="avatar small" id="top-avatar"></span></div></header>
     <main id="main" tabindex="-1"></main>
-    <footer>CRM <span>Versão da tela 1.14 · 06/10/2026</span></footer>
+    <footer>ALICERCES · CRM <span>Versão da tela 1.14.1 · 06/10/2026</span></footer>
   </div>
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-title"><div id="form-content"></div></dialog>
@@ -429,7 +429,7 @@ function setOcupado(v) { ocupado = v; atualizarSync(); }
 function telaLogin(msg = '', emailDigitado = '') {
   document.body.classList.add('auth');
   $('auth').innerHTML = `<form class="auth-card" id="login-form" novalidate>
-    <div class="brand"><span class="brand-mark">a</span><span>CRM</span></div>
+    <div class="brand"><span class="brand-mark">a</span><span>alicerces<small>CRM</small></span></div>
     <h1>Entrar</h1><p class="subtitle">Use o e-mail cadastrado pela gestão.</p>
     ${API_URL ? '' : '<div class="notice">Esta página ainda não está ligada ao Apps Script. Fale com a administradora do CRM.</div>'}
     <label class="field">E-mail<input type="email" name="email" autocomplete="username" required value="${esc(emailDigitado || store.get('crm-alicerces-email') || '')}"></label>
@@ -453,7 +453,7 @@ function telaLogin(msg = '', emailDigitado = '') {
 }
 function telaSenha(obrigatoria) {
   const html = `<form class="${obrigatoria ? 'auth-card' : 'form-body'}" id="senha-form">
-    ${obrigatoria ? '<div class="brand"><span class="brand-mark">a</span><span>CRM</span></div><h1>Crie sua senha</h1><p class="subtitle">Você entrou com a senha provisória. Agora escolha uma senha só sua.</p>' : ''}
+    ${obrigatoria ? '<div class="brand"><span class="brand-mark">a</span><span>alicerces<small>CRM</small></span></div><h1>Crie sua senha</h1><p class="subtitle">Você entrou com a senha provisória. Agora escolha uma senha só sua.</p>' : ''}
     <label class="field">Senha atual${obrigatoria ? ' (provisória)' : ''}<input type="password" name="senhaAtual" required autocomplete="current-password"></label>
     <label class="field">Nova senha (mínimo 8 caracteres)<input type="password" name="novaSenha" minlength="8" required autocomplete="new-password"></label>
     <label class="field">Repita a nova senha<input type="password" name="confirma" minlength="8" required autocomplete="new-password"></label>
@@ -483,7 +483,7 @@ async function sair(expirou) {
 }
 async function iniciar() {
   document.body.classList.add('auth');
-  $('auth').innerHTML = '<div class="auth-card"><div class="brand"><span class="brand-mark">a</span><span>CRM</span></div><p class="subtitle">Carregando o sistema…</p></div>';
+  $('auth').innerHTML = '<div class="auth-card"><div class="brand"><span class="brand-mark">a</span><span>alicerces<small>CRM</small></span></div><p class="subtitle">Carregando o sistema…</p></div>';
   // abre na hora com a última cópia guardada neste navegador e atualiza em segundo plano
   const copia = await cacheLocal.ler();
   if (copia && copia.d && copia.d.usuario && copia.d.tabelas && Date.now() - copia.quando < 7 * 864e5) {
