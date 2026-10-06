@@ -116,6 +116,18 @@ span.ck-box{cursor:default}
 .region-panel .funnel-row strong{font-size:14px}
 .dim-row{opacity:.4}
 @media(max-width:760px){.region-panel .funnel-row{grid-template-columns:95px 1fr 30px}.region-panel .funnel-row small{grid-column:1/-1}}
+
+/* v1.11 · Acompanhamentos e kanban por processo */
+.ck-resultado{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.ck-tarefa{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px}
+.kanban-proc{margin-bottom:12px;width:max-content;max-width:100%;overflow-x:auto}
+.proc-kanban .kanban-column{min-height:260px}
+.proc-kanban .kanban-heading span{white-space:normal;line-height:1.25}
+.proc-card{display:grid;gap:6px;padding:12px}
+.proc-card h3{font-size:13px}
+.proc-card .mini-progress{min-width:0}
+.col-sem{background:#f1efe8;border-style:dashed}
+.toolbar select{max-width:100%}
 </style>
   <script>
     /* ===== ENDEREÇO DA API (link /exec do Apps Script) ===== */
@@ -133,7 +145,7 @@ span.ck-box{cursor:default}
   <div class="shell">
     <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola ou código ELP…" aria-label="Buscar escola em todo o CRM"></label><button class="sync" data-action="refresh" id="sync-status" title="Atualizar dados da planilha" style="background:none">Tudo salvo</button><span class="date-label" id="date-label"></span><span class="avatar small" id="top-avatar"></span></div></header>
     <main id="main" tabindex="-1"></main>
-    <footer>ALICERCES · CRM EDITORIAL <span>Versão da tela 1.10 · 02/10/2026 · Dados gravados na planilha Google</span></footer>
+    <footer>ALICERCES · CRM EDITORIAL <span>Versão da tela 1.11 · 02/10/2026 · Dados gravados na planilha Google</span></footer>
   </div>
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-title"><div id="form-content"></div></dialog>
@@ -193,7 +205,7 @@ const store = { get(k) { try { return localStorage.getItem(k); } catch { return 
 let token = store.get(TOKEN_KEY) || '';
 let D = null; // { usuario, tabelas, listas, config, planilha }
 let visaoTarefas = 'minhas', viewTarefas = 'lista', areaFiltro = '';
-let regiao = '', viewClientes = 'cards', renFiltro = ''; // região vale para Prospecção, Clientes e Relatórios (fica ao trocar de página)
+let regiao = '', viewClientes = 'cards', renFiltro = '', etapaComFiltro = '', etapaPedFiltro = '', kanbanComProc = 'REN'; // região vale para Prospecção, Clientes e Relatórios (fica ao trocar de página)
 const REGIOES = { 'Sul': ['PR', 'SC', 'RS'], 'Sudeste': ['SP', 'RJ', 'MG', 'ES'], 'Centro-Oeste': ['MT', 'MS', 'GO', 'DF'], 'Norte': ['AM', 'PA', 'AC', 'RO', 'RR', 'AP', 'TO'], 'Nordeste': ['MA', 'PI', 'CE', 'RN', 'PB', 'PE', 'AL', 'SE', 'BA'] };
 const regiaoDe = uf => Object.keys(REGIOES).find(r => REGIOES[r].includes(String(uf || '').trim().toUpperCase())) || 'Sem UF';
 const naRegiao = e => !regiao || (e && regiaoDe(e.UF) === regiao);
@@ -496,17 +508,29 @@ function cardLead(o) {
 /* ---------- Clientes ---------- */
 function clientesPage() {
   const q = norm(query);
-  const lista = clientes().filter(e => {
+  const base = clientes().filter(e => {
     if (!naRegiao(e)) return false;
     if (renFiltro) { const r = renovacaoAtual(e.ID_ESCOLA); if (renFiltro === 'sem' ? r : !r || r.STATUS !== renFiltro) return false; }
     const anos = T('ANOS_LETIVOS').filter(a => a.ID_ESCOLA === e.ID_ESCOLA);
     if (owner && !anos.some(a => a.RESPONSAVEL_COMERCIAL === owner || a.RESPONSAVEL_PEDAGOGICO === owner)) return false;
     return !q || norm([e.NOME_ESCOLA, e.CIDADE, e.UF, e.CNPJ, e.CODIGO_ELP, (principal(e.ID_ESCOLA) || {}).NOME].join(' ')).includes(q);
   }).sort((a, b) => String(a.NOME_ESCOLA).localeCompare(b.NOME_ESCOLA, 'pt-BR'));
-  const visao = `<div class="segmented" aria-label="Visualização"><button data-action="cli-view" data-ref="cards" class="${viewClientes === 'cards' ? 'active' : ''}" aria-pressed="${viewClientes === 'cards'}">▦ Cards</button><button data-action="cli-view" data-ref="lista" class="${viewClientes === 'lista' ? 'active' : ''}" aria-pressed="${viewClientes === 'lista'}">☰ Lista</button></div>`;
-  const topo = heading('PARCERIAS QUE CONTINUAM', 'Clientes', 'Uma visão completa de cada escola, do contrato à renovação.', eu().gestor ? btn('⬆ Importar clientes', 'import', 'secondary', 'data-tipo="CLIENTES"') + btn('⬆ Importar kits do relatório', 'import', 'secondary', 'data-tipo="CONTRATO_ERP"') + btn('⬆ Atualizar renovações', 'import', 'secondary', 'data-tipo="RENOVACAO"') : '') + filtros(false, `<select id="ren-filter" aria-label="Renovação"><option value="">Renovação: todas</option>${['Em negociação', 'Renovada', 'Não renovada'].map(v => `<option ${renFiltro === v ? 'selected' : ''}>${v}</option>`).join('')}<option value="sem" ${renFiltro === 'sem' ? 'selected' : ''}>Sem renovação aberta</option></select><small class="secondary-text">${lista.length} cliente(s)</small>` + visao);
+  const procs = new Map(base.map(e => [e.ID_ESCOLA, processoCli(e)]));
+  const passaC = p => !etapaComFiltro || etapaComFiltro === (etapaComFiltro === 'SEM' ? p.etapaC : p.procC + '|' + p.etapaC);
+  const passaP = p => !etapaPedFiltro || etapaPedFiltro === p.etapaP;
+  const lista = base.filter(e => { const p = procs.get(e.ID_ESCOLA); return passaC(p) && passaP(p); });
+  // contagens de cada opção consideram os outros filtros
+  const paraC = base.map(e => procs.get(e.ID_ESCOLA)).filter(passaP), paraP = base.map(e => procs.get(e.ID_ESCOLA)).filter(passaC);
+  const contaC = v => paraC.filter(p => v === 'SEM' ? p.etapaC === 'SEM' : p.procC + '|' + p.etapaC === v).length, contaP = v => paraP.filter(p => p.etapaP === v).length;
+  const opt = (v, rot, n, sel) => `<option value="${esc(v)}" ${sel === v ? 'selected' : ''}>${esc(rot)} (${n})</option>`;
+  const optsRen = colunasProc('RENOVACAO', paraC.filter(p => p.procC === 'REN'), 'etapaC').concat('Concluído'), optsCom = colunasProc('COMERCIAL', paraC.filter(p => p.procC === 'COM'), 'etapaC').concat('Concluído');
+  const filtroEtapas = `<select id="etapa-com-filter" aria-label="Etapa comercial"><option value="">Etapa comercial: todas</option><optgroup label="Renovação">${optsRen.map(v => opt('REN|' + v, v, contaC('REN|' + v), etapaComFiltro)).join('')}</optgroup><optgroup label="Contratação (cliente novo)">${optsCom.map(v => opt('COM|' + v, v, contaC('COM|' + v), etapaComFiltro)).join('')}</optgroup>${opt('SEM', 'Sem processo comercial aberto', contaC('SEM'), etapaComFiltro)}</select>`
+    + `<select id="etapa-ped-filter" aria-label="Etapa pedagógica"><option value="">Etapa pedagógica: todas</option>${colunasProc('PEDAGOGICO', paraP, 'etapaP').concat('Concluído').map(v => opt(v, v, contaP(v), etapaPedFiltro)).join('')}${opt('SEM', 'Pedagógico não liberado', contaP('SEM'), etapaPedFiltro)}</select>`;
+  const visao = `<div class="segmented" aria-label="Visualização">${[['cards', '▦ Cards'], ['lista', '☰ Lista'], ['kcom', '▥ Kanban comercial'], ['kped', '▥ Kanban pedagógico']].map(([v, l]) => `<button data-action="cli-view" data-ref="${v}" class="${viewClientes === v ? 'active' : ''}" aria-pressed="${viewClientes === v}">${l}</button>`).join('')}</div>`;
+  const topo = heading('PARCERIAS QUE CONTINUAM', 'Clientes', 'Uma visão completa de cada escola, do contrato à renovação.', eu().gestor ? btn('⬆ Importar clientes', 'import', 'secondary', 'data-tipo="CLIENTES"') + btn('⬆ Importar kits do relatório', 'import', 'secondary', 'data-tipo="CONTRATO_ERP"') + btn('⬆ Atualizar renovações', 'import', 'secondary', 'data-tipo="RENOVACAO"') : '') + filtros(false, filtroEtapas + `<select id="ren-filter" aria-label="Renovação"><option value="">Renovação: todas</option>${['Em negociação', 'Renovada', 'Não renovada'].map(v => `<option ${renFiltro === v ? 'selected' : ''}>${v}</option>`).join('')}<option value="sem" ${renFiltro === 'sem' ? 'selected' : ''}>Sem renovação aberta</option></select><small class="secondary-text">${lista.length} cliente(s)</small>` + visao);
   const vazioTxt = !lista.length ? vazio(clientes().length ? 'Nenhum cliente para estes filtros.' : 'Nenhum cliente ainda. Quando você registrar uma contratação, a escola aparece aqui.') : '';
   if (viewClientes === 'lista') return topo + listaClientes(lista) + vazioTxt;
+  if (viewClientes === 'kcom' || viewClientes === 'kped') return topo + kanbanClientes(lista.map(e => procs.get(e.ID_ESCOLA)), viewClientes === 'kped') + vazioTxt;
   return topo
     + `<div class="section-grid">${lista.map(e => {
       const { c, ks, ctc, ckC, ckP, ano, ren, ckR, proxR } = dadosCliente(e), p = principal(e.ID_ESCOLA);
@@ -523,16 +547,48 @@ function dadosCliente(e) {
   const ckP = itPR.length ? progressoCk(itPR) : ctc ? progressoCk(itensCk(ctc.ID_CONTRATACAO, 'PEDAGOGICO')) : null;
   const ano = T('ANOS_LETIVOS').filter(a => a.ID_ESCOLA === e.ID_ESCOLA).slice(-1)[0];
   const proxR = itR.find(i => !ckFeito(i));
-  return { c, ks, ctc, ckC, ckP, ano, ren, ckR, proxR };
+  return { e, ID_ESCOLA_: e.ID_ESCOLA, c, ks, ctc, ckC, ckP, ano, ren, ckR, proxR };
+}
+/** Etapa atual = primeiro item pendente. Mesma regra para barra, filtros, lista, cards e kanbans. */
+function processoCli(e) {
+  const d = dadosCliente(e);
+  const itC = d.ckR ? itensCk(d.ren.ID_RENOVACAO, 'RENOVACAO') : d.ctc ? itensCk(d.ctc.ID_CONTRATACAO, 'COMERCIAL') : [];
+  const itP = d.ren && itensCk(d.ren.ID_RENOVACAO, 'PEDAGOGICO').length ? itensCk(d.ren.ID_RENOVACAO, 'PEDAGOGICO') : d.ctc ? itensCk(d.ctc.ID_CONTRATACAO, 'PEDAGOGICO') : [];
+  const atual = its => its.length ? (its.find(i => !ckFeito(i)) || null) : undefined;
+  const aC = atual(itC), aP = atual(itP);
+  return { ...d, procC: d.ckR ? 'REN' : itC.length ? 'COM' : '', itC, itP, atualC: aC, atualP: aP,
+    etapaC: !itC.length ? 'SEM' : aC ? aC.NOME : 'Concluído', etapaP: !itP.length ? 'SEM' : aP ? aP.NOME : 'Concluído' };
+}
+const nomesEtapas = proc => T('CHECKLIST_ETAPAS').filter(x => x.PROCESSO === proc && sim(x.ATIVO)).sort((a, b) => Number(a.ORDEM) - Number(b.ORDEM)).map(x => x.NOME);
+function colunasProc(proc, pcs, campo) {
+  const nomes = nomesEtapas(proc);
+  pcs.forEach(p => { if (p[campo] !== 'SEM' && p[campo] !== 'Concluído' && !nomes.includes(p[campo])) nomes.push(p[campo]); }); // etapas renomeadas/antigas
+  return nomes;
 }
 function barraMini(ck, ped, semTxt) {
   if (!ck || !ck.t) return `<small class="secondary-text">${semTxt}</small>`;
   return `<div class="mini-progress" title="${ck.f} de ${ck.t} etapas"><div class="progress ${ped ? 'ped' : ''}"><span style="width:${ck.pct}%"></span></div><small>${ck.f}/${ck.t}</small></div>`;
 }
+function kanbanClientes(pcs, ped) {
+  let proc = 'PEDAGOGICO', campo = 'etapaP', atualK = 'atualP', its = 'itP', sub = '';
+  if (!ped) {
+    proc = kanbanComProc === 'COM' ? 'COMERCIAL' : 'RENOVACAO'; campo = 'etapaC'; atualK = 'atualC'; its = 'itC';
+    const nRen = pcs.filter(p => p.procC === 'REN').length, nCom = pcs.filter(p => p.procC === 'COM').length;
+    sub = `<div class="segmented kanban-proc" aria-label="Processo comercial"><button data-action="kcom-proc" data-ref="REN" class="${kanbanComProc !== 'COM' ? 'active' : ''}">Renovação (${nRen})</button><button data-action="kcom-proc" data-ref="COM" class="${kanbanComProc === 'COM' ? 'active' : ''}">Contratação de cliente novo (${nCom})</button></div>`;
+    pcs = pcs.filter(p => p.procC === (kanbanComProc === 'COM' ? 'COM' : 'REN') || p.procC === '');
+  }
+  const cols = colunasProc(proc, pcs, campo);
+  const semN = pcs.filter(p => p[campo] === 'SEM');
+  const colunas = (semN.length ? [[ped ? 'Pedagógico não liberado' : 'Sem processo aberto', semN, true]] : []).concat(cols.map(n => [n, pcs.filter(p => p[campo] === n)]), [['Concluído', pcs.filter(p => p[campo] === 'Concluído')]]);
+  const h = hoje();
+  const card = p => { const e = escola(p.ID_ESCOLA_) || p.e, a = p[atualK], pr = progressoCk(p[its]), late = a && a.PRAZO && dia(a.PRAZO) < h;
+    return `<article class="lead-card proc-card"><h3>${escolaBtn(e)}</h3><p class="location">${e.CODIGO_ELP ? 'ELP ' + esc(e.CODIGO_ELP) + ' · ' : ''}${esc(e.CIDADE || '')}${e.UF ? '/' + esc(e.UF) : ''}</p>${p[its].length ? `<div class="mini-progress"><div class="progress ${ped ? 'ped' : ''}"><span style="width:${pr.pct}%"></span></div><small>${pr.f}/${pr.t}</small></div>` : ''}${a ? `<small class="secondary-text">${a.PRAZO ? 'Prazo ' + data(a.PRAZO) : 'Sem prazo'}${a.RESPONSAVEL ? ' · ' + esc(String(nomeUsuario(a.RESPONSAVEL)).split(' ')[0]) : ''}</small>${late ? badge('Atrasado', 'red') : ''}` : ''}${btn('Abrir →', 'open-school-tab', 'text', `data-id="${esc(e.ID_ESCOLA)}" data-tab="${ped ? 6 : 4}"`)}</article>`; };
+  return sub + `<p class="visual-tip">Cada escola aparece na coluna da etapa atual (o primeiro passo ainda pendente). Para avançar, marque a etapa na ficha: a mudança aparece aqui, na lista, nos cards e nos filtros.</p><div class="kanban proc-kanban" style="grid-template-columns:repeat(${colunas.length}, 215px)">${colunas.map(([n, ps, sem]) => `<section class="kanban-column ${sem ? 'col-sem' : ''}"><div class="kanban-heading"><span><i class="stage-dot"></i>${esc(n)}</span>${badge(ps.length, '')}</div>${ps.map(card).join('') || vazio('—')}</section>`).join('')}</div>`;
+}
 function listaClientes(lista) {
   return `<section class="panel table-wrap client-list"><table><thead><tr><th>ESCOLA</th><th>REGIÃO</th><th>CONTRATO</th><th>RESPONSÁVEIS</th><th>COMERCIAL / RENOVAÇÃO</th><th>PEDAGÓGICO</th><th>KITS</th><th></th></tr></thead><tbody>${lista.map(e => {
     const { c, ks, ctc, ckC, ckP, ano, ren, ckR, proxR } = dadosCliente(e);
-    return `<tr><td>${escolaBtn(e)}<br><small class="secondary-text">${e.CODIGO_ELP ? 'ELP ' + esc(e.CODIGO_ELP) + ' · ' : '<span class="danger">sem ELP</span> · '}${esc(e.CIDADE || '')}${e.UF ? '/' + esc(e.UF) : ''}</small></td><td><small>${esc(regiaoDe(e.UF))}</small></td><td>${c ? `${badge(c.STATUS, c.STATUS === 'Vigente' ? 'teal' : 'red')}<br><small class="secondary-text">${esc(c.ANO_LETIVO_INICIAL)}–${esc(c.ANO_LETIVO_FINAL)}</small>` : '<small class="secondary-text">Sem contrato</small>'}</td><td><small>C: ${esc(nomeUsuario(ano && ano.RESPONSAVEL_COMERCIAL))}<br>P: ${esc(nomeUsuario(ano && ano.RESPONSAVEL_PEDAGOGICO))}</small></td><td>${ckR ? `<small class="secondary-text">Renovação ${esc(ren.ANO_LETIVO_DESTINO)}</small>` : ''}${barraMini(ckC, false, ren ? 'sem checklist' : c ? (ctc ? 'não ativado' : 'sem renovação aberta') : '—')}${ckR ? `<small class="secondary-text">${proxR ? 'Próx.: ' + esc(proxR.NOME) : badge('Renovada', 'teal')}</small>` : ''}</td><td>${barraMini(ckP, true, ckC && ckC.t ? 'aguardando assinatura' : '—')}</td><td><small>${ks.length} itens<br>${dinheiro(valorKits(ks))}</small></td><td>${btn('Abrir', 'open-school', 'text', `data-id="${esc(e.ID_ESCOLA)}"`)}</td></tr>`;
+    return `<tr><td>${escolaBtn(e)}<br><small class="secondary-text">${e.CODIGO_ELP ? 'ELP ' + esc(e.CODIGO_ELP) + ' · ' : '<span class="danger">sem ELP</span> · '}${esc(e.CIDADE || '')}${e.UF ? '/' + esc(e.UF) : ''}</small></td><td><small>${esc(regiaoDe(e.UF))}</small></td><td>${c ? `${badge(c.STATUS, c.STATUS === 'Vigente' ? 'teal' : 'red')}<br><small class="secondary-text">${esc(c.ANO_LETIVO_INICIAL)}–${esc(c.ANO_LETIVO_FINAL)}</small>` : '<small class="secondary-text">Sem contrato</small>'}</td><td><small>C: ${esc(nomeUsuario(ano && ano.RESPONSAVEL_COMERCIAL))}<br>P: ${esc(nomeUsuario(ano && ano.RESPONSAVEL_PEDAGOGICO))}</small></td><td>${ckR ? `<small class="secondary-text">Renovação ${esc(ren.ANO_LETIVO_DESTINO)}</small>` : ''}${barraMini(ckC, false, ren ? 'sem checklist' : c ? (ctc ? 'não ativado' : 'sem renovação aberta') : '—')}${ckR ? `<small class="secondary-text">${proxR ? 'Próx.: ' + esc(proxR.NOME) : badge('Renovada', 'teal')}</small>` : ''}</td><td>${barraMini(ckP, true, ckC && ckC.t ? 'aguardando assinatura' : '—')}${(() => { const pp = processoCli(e); return pp.atualP ? `<small class="secondary-text">Atual: ${esc(pp.atualP.NOME)}</small>` : ''; })()}</td><td><small>${ks.length} itens<br>${dinheiro(valorKits(ks))}</small></td><td>${btn('Abrir', 'open-school', 'text', `data-id="${esc(e.ID_ESCOLA)}"`)}</td></tr>`;
   }).join('')}</tbody></table></section>`;
 }
 
@@ -548,13 +604,34 @@ function checklistHtml(itens) {
       : [c.PRAZO ? `Prazo ${data(c.PRAZO)}` : (atual ? 'Próximo passo' : ''), c.RESPONSAVEL ? esc(nomeUsuario(c.RESPONSAVEL)) : (c.PROCESSO === 'PEDAGOGICO' ? 'sem responsável' : '')].filter(Boolean).join(' · ');
     return `<li class="ck-item ${feito ? 'feito' : ''} ${na ? 'na' : ''} ${atual ? 'atual' : ''} ${atrasado ? 'atrasado' : ''}">
       <button class="ck-box" data-action="ck-toggle" data-ref="${esc(c.ID_ITEM_CHECK)}" aria-pressed="${feito}" aria-label="${feito ? 'Desmarcar' : 'Marcar como concluído'}: ${esc(c.NOME)}">${feito ? (na ? '–' : '✓') : ''}</button>
-      <div class="ck-text"><strong>${esc(c.NOME)}</strong>${sim(c.OBRIGATORIA) ? '' : ' <span class="pill">opcional</span>'}${atrasado ? ' ' + badge('Atrasado', 'red') : ''}<small>${info}</small></div>
-      ${!feito && !sim(c.OBRIGATORIA) ? btn('Não se aplica', 'ck-na', 'text', `data-ref="${esc(c.ID_ITEM_CHECK)}"`) : ''}
+      <div class="ck-text"><strong>${esc(c.NOME)}</strong>${sim(c.OBRIGATORIA) ? '' : ' <span class="pill">opcional</span>'}${atrasado ? ' ' + badge('Atrasado', 'red') : ''}<small>${info}</small>${c.RESULTADO ? `<span class="ck-resultado">${String(c.RESULTADO).split(',').map(v => badge(v.trim(), /não interagiu/i.test(v) ? 'red' : 'teal')).join('')}</span>` : ''}${tarefasAuto(c)}</div>
+      ${!feito && !sim(c.OBRIGATORIA) ? btn('Não se aplica', 'ck-na', 'text', `data-ref="${esc(c.ID_ITEM_CHECK)}"`) : ''}${feito && !na && ehAcomp(c) ? btn(c.RESULTADO ? 'Editar resultado' : 'Registrar resultado', 'ck-resultado', 'text', `data-ref="${esc(c.ID_ITEM_CHECK)}"`) : ''}
     </li>`;
   }).join('')}</ul>`;
 }
+const ehAcomp = c => c.PROCESSO === 'PEDAGOGICO' && /^ACOMPANHAMENTO/.test(String(c.CHAVE || ''));
+/** Tarefa "ligar para a escola" criada pela automação e ligada a este acompanhamento. */
+function tarefasAuto(c) {
+  const ts = T('TAREFAS').filter(t => String(t.ORIGEM_AUTOMACAO || '').startsWith('SEM_INTERACAO:') && String(t.ORIGEM_AUTOMACAO).endsWith('>' + c.ID_ITEM_CHECK));
+  return ts.map(t => `<span class="ck-tarefa">📞 <button class="link-button" data-action="open-task" data-ref="${esc(t.ID_TAREFA)}">${esc(t.TITULO)}</button> ${badge(t.STATUS, t.STATUS === 'Concluída' ? 'teal' : 'orange')}</span>`).join('');
+}
+/** Formulário do resultado do acompanhamento (ao marcar ou para editar depois). */
+function formResultadoAcomp(c) {
+  const ops = L('RESULTADO_ACOMPANHAMENTO').length ? L('RESULTADO_ACOMPANHAMENTO') : ['Disparo em massa enviado', 'Assessoria/Treinamento agendado', 'Não interagiu'];
+  const atual = String(c.RESULTADO || '').split(',').map(v => v.trim());
+  const feito = c.STATUS === 'Concluído';
+  showForm(c.NOME, `<p class="subtitle">${esc((escola(c.ID_ESCOLA) || {}).NOME_ESCOLA || '')}</p><fieldset class="field multi"><legend>O que aconteceu neste acompanhamento? *</legend>${ops.map(o => `<label class="check-field"><input type="checkbox" name="res_${esc(o)}" data-bool ${atual.includes(o) ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</fieldset>` + texto('Observação (opcional)', 'OBSERVACAO', c.OBSERVACAO)
+    + `<p class="visual-tip">Três acompanhamentos seguidos com “Não interagiu” criam uma tarefa para o consultor pedagógico ligar para a escola no acompanhamento seguinte.</p>`,
+    async v => {
+      const RESULTADO = ops.filter(o => v['res_' + o]);
+      if (!RESULTADO.length) throw new Error('Marque pelo menos uma opção.');
+      const r = await gravar('marcarChecklist', { ID_ITEM_CHECK: c.ID_ITEM_CHECK, acao: feito ? 'resultado' : 'concluir', RESULTADO, OBSERVACAO: v.OBSERVACAO }, feito ? 'Resultado atualizado.' : 'Acompanhamento registrado.');
+      if (r && r.tarefa) toast('3 acompanhamentos seguidos sem interação: tarefa “Ligar para a escola” criada para o consultor pedagógico.');
+    }, feito ? 'Salvar' : 'Concluir acompanhamento');
+}
 function marcarCk(id, acao, botao) {
   const c = T('CHECKLIST').find(x => x.ID_ITEM_CHECK === id); if (!c) return;
+  if (acao === 'concluir' && ehAcomp(c)) return formResultadoAcomp(c);
   if (acao === 'reabrir') {
     if (!(c.CONCLUIDO_POR === eu().id || eu().gestor)) { toast('Só quem marcou (ou um gestor) pode desmarcar.', true); return; }
     if (!confirmar(botao, '↺')) { toast('Clique de novo na caixinha para desmarcar “' + c.NOME + '”.'); return; }
@@ -781,10 +858,10 @@ function exportarCsv() {
 
 /* ---------- Configurações (somente gestor) ---------- */
 let cfgAba = 'parametros';
-const NOMES_LISTAS = { ETAPA_PROSPECCAO: 'Etapas do funil de prospecção', STATUS_POS_COMERCIAL: 'Status pós-comercial', RESULTADO_PEDAGOGICA: 'Resultado da apresentação pedagógica', NIVEL_INTERESSE: 'Nível de interesse', CANAL: 'Canais de contato', DESFECHO_REUNIAO: 'Desfecho de reunião', TIPO_REUNIAO: 'Tipos de reunião e atendimento', AREA_DEMANDA: 'Áreas (tarefas entre setores)', SEGMENTO: 'Segmentos', MOTIVO_PERDA: 'Motivos de não avanço' };
+const NOMES_LISTAS = { ETAPA_PROSPECCAO: 'Etapas do funil de prospecção', STATUS_POS_COMERCIAL: 'Status pós-comercial', RESULTADO_PEDAGOGICA: 'Resultado da apresentação pedagógica', NIVEL_INTERESSE: 'Nível de interesse', CANAL: 'Canais de contato', DESFECHO_REUNIAO: 'Desfecho de reunião', TIPO_REUNIAO: 'Tipos de reunião e atendimento', AREA_DEMANDA: 'Áreas (tarefas entre setores)', RESULTADO_ACOMPANHAMENTO: 'Resultado do acompanhamento mensal', SEGMENTO: 'Segmentos', MOTIVO_PERDA: 'Motivos de não avanço' };
 const NOMES_PARAM = { INTERVALO_TENTATIVAS_PRE_DIAS: 'Dias entre uma tentativa e a próxima', MAX_TENTATIVAS_PRE: 'Máximo de tentativas de contato', MAX_TENTATIVAS_POS: 'Máximo de tentativas no pós-comercial', FOLLOWUP_AMOSTRA_DIAS: 'Retorno após envio de amostra (dias)', FOLLOWUP_DEGUSTACAO_DIAS: 'Retorno após degustação (dias)', DURACAO_PADRAO_CONTRATO_ANOS: 'Duração padrão do contrato (anos)', JANELA_RESCISAO_INICIO: 'Início da janela de rescisão', JANELA_RESCISAO_FIM: 'Fim da janela de rescisão', MULTA_RESCISAO_FORA_JANELA: 'Multa por rescisão fora da janela', SETOR_POS_VENDA: 'Setor que recebe o onboarding' };
 const PARAM_NUM = ['MAX_TENTATIVAS_PRE', 'MAX_TENTATIVAS_POS', 'INTERVALO_TENTATIVAS_PRE_DIAS', 'FOLLOWUP_AMOSTRA_DIAS', 'FOLLOWUP_DEGUSTACAO_DIAS', 'DURACAO_PADRAO_CONTRATO_ANOS'];
-const SISTEMA_LISTAS = { STATUS_POS_COMERCIAL: ['Ganho', 'Perdido'] };
+const SISTEMA_LISTAS = { STATUS_POS_COMERCIAL: ['Ganho', 'Perdido'], RESULTADO_ACOMPANHAMENTO: ['Não interagiu'] };
 async function configurar(d, msg) {
   setOcupado(true);
   try {
@@ -1208,6 +1285,8 @@ addEventListener('click', async e => {
       case 'view-kanban': view = 'kanban'; render(); break;
       case 'view-list': view = 'list'; render(); break;
       case 'cli-view': viewClientes = ref; render(); break;
+      case 'kcom-proc': kanbanComProc = ref; render(); break;
+      case 'open-school-tab': abrirEscola(b.dataset.id, Number(b.dataset.tab)); break;
       case 'prev-month': mes--; if (mes < 0) { mes = 11; ano--; } render(); break;
       case 'next-month': mes++; if (mes > 11) { mes = 0; ano++; } render(); break;
       case 'today-month': mes = new Date().getMonth(); ano = new Date().getFullYear(); render(); break;
@@ -1258,6 +1337,7 @@ addEventListener('click', async e => {
       case 'cfg-etapa-mover': await moverEtapa(ref, Number(b.dataset.pos), Number(b.dataset.dir)); break;
       case 'ck-toggle': { const c = T('CHECKLIST').find(x => x.ID_ITEM_CHECK === ref); if (c) marcarCk(ref, ckFeito(c) ? 'reabrir' : 'concluir', b); break; }
       case 'ck-na': marcarCk(ref, 'nao_se_aplica', b); break;
+      case 'ck-resultado': formResultadoAcomp(achar('CHECKLIST', 'ID_ITEM_CHECK', ref)); break;
       case 'ck-iniciar': await gravar('iniciarChecklist', { ID_CONTRATACAO: ref }, 'Checklist ativado.'); break;
       case 'tent-canal': registrarTentativaRapida(o, b.dataset.canal); break;
       case 'import': abrirImportacao(b.dataset.tipo); break;
@@ -1281,6 +1361,8 @@ addEventListener('change', async e => {
   if (el.id === 'area-filter') { areaFiltro = el.value; render(); }
   if (el.id === 'region-filter') { regiao = el.value; render(); }
   if (el.id === 'ren-filter') { renFiltro = el.value; render(); }
+  if (el.id === 'etapa-com-filter') { etapaComFiltro = el.value; render(); }
+  if (el.id === 'etapa-ped-filter') { etapaPedFiltro = el.value; render(); }
   if (el.dataset.task) {
     const t = T('TAREFAS').find(x => x.ID_TAREFA === el.dataset.task); if (!t) return;
     const novo = el.checked ? 'Concluída' : 'Aberta';
