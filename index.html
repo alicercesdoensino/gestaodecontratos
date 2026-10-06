@@ -150,6 +150,12 @@ span.ck-box{cursor:default}
 .alunos-panel .stats{margin:6px 0 0}
 .alunos-panel select{margin-left:6px;padding:6px 8px;border:1px solid #dce1d7;border-radius:8px;background:#fffefb}
 @media(max-width:760px){.region-panel .report-bars .funnel-row{grid-template-columns:95px 1fr 80px}.report-bars .funnel-row.proc-row{grid-template-columns:110px 1fr 28px 44px}.proc-row .rel-ver{grid-column:1/-1;justify-self:start}}
+
+/* v1.14 · Feedback de gravação */
+#sync-status.erro{color:#b3261e;font-weight:600}
+#sync-status .link-button{color:#b3261e;text-decoration:underline}
+.toast-acao{margin-left:10px;padding:4px 10px;border-radius:6px;border:1px solid #fff8;background:#fff2;color:inherit;font-weight:700;cursor:pointer}
+.demo-chip[hidden]{display:none}
 </style>
   <script>
     /* ===== ENDEREÇO DA API (link /exec do Apps Script) ===== */
@@ -174,15 +180,15 @@ span.ck-box{cursor:default}
 <body class="auth">
   <div id="auth"></div>
   <aside class="sidebar" id="sidebar">
-    <a class="brand" href="#inicio" aria-label="Alicerces, início"><span class="brand-mark">a</span><span>alicerces<small>CRM EDITORIAL</small></span></a>
+    <a class="brand" href="#inicio" aria-label="CRM, início"><span class="brand-mark">a</span><span>CRM</span></a>
     <div class="workspace-label">RELACIONAMENTO COM ESCOLAS</div>
     <nav id="navigation" aria-label="Menu principal"></nav>
-    <div class="sidebar-bottom"><div class="demo-chip" id="env-chip"><span></span> Planilha</div><p>Da primeira conversa<br>à próxima conquista.</p><div class="profile" id="profile"></div><div class="sidebar-links"><button class="logout" data-action="change-pass">Alterar minha senha</button><button class="logout" data-action="logout">Sair</button></div></div>
+    <div class="sidebar-bottom"><div class="demo-chip" id="env-chip" hidden></div><p>Da primeira conversa<br>à próxima conquista.</p><div class="profile" id="profile"></div><div class="sidebar-links"><button class="logout" data-action="change-pass">Alterar minha senha</button><button class="logout" data-action="logout">Sair</button></div></div>
   </aside>
   <div class="shell">
     <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola ou código ELP…" aria-label="Buscar escola em todo o CRM"></label><button class="sync" data-action="refresh" id="sync-status" title="Atualizar dados da planilha" style="background:none">Tudo salvo</button><span class="date-label" id="date-label"></span><span class="avatar small" id="top-avatar"></span></div></header>
     <main id="main" tabindex="-1"></main>
-    <footer>ALICERCES · CRM EDITORIAL <span>Versão da tela 1.13 · 02/10/2026 · Dados gravados na planilha Google</span></footer>
+    <footer>CRM <span>Versão da tela 1.14 · 06/10/2026</span></footer>
   </div>
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-title"><div id="form-content"></div></dialog>
@@ -275,11 +281,12 @@ const valorKits = ks => ks.reduce((a, k) => a + Number(k.VALOR_REFERENCIA || 0) 
 const maxTent = () => cfg('MAX_TENTATIVAS_PRE', 7);
 
 /* ---------- Comunicação com o Apps Script ---------- */
-async function api(acao, dados = {}) {
+const novoIdOp = () => Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+async function api(acao, dados = {}, idOp = '') {
   if (!API_URL) throw new Error('O endereço da API ainda não foi configurado nesta página.');
   let resp;
   try {
-    resp = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ acao, dados, token }), redirect: 'follow' });
+    resp = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ acao, dados, token, idOp: idOp || undefined }), redirect: 'follow' });
   } catch {
     throw new Error('Não foi possível falar com o servidor. Confira sua internet e tente de novo.');
   }
@@ -312,51 +319,109 @@ function redesenhar() {
 async function gravar(acao, dados, msg) {
   setOcupado(true);
   try {
-    const r = await api(acao, dados);
+    const r = await api(acao, dados, novoIdOp());
     aplicarMudancas(r.mudancas); redesenhar();
     if (msg) toast(msg);
     return r.resultado;
   } finally { setOcupado(false); }
 }
 
+/** Carregamento completo no formato compacto (cabeçalho + valores) e volta para objetos. */
+async function carregarDados() {
+  const r = await api('carregar', { compacto: true });
+  if (r && r.tabelas) Object.keys(r.tabelas).forEach(k => { const t = r.tabelas[k]; if (t && t.c) r.tabelas[k] = t.l.map(v => { const o = {}; t.c.forEach((c, i) => { o[c] = v[i]; }); return o; }); });
+  return r;
+}
+
+/* ---------- Cópia local dos dados (abre na hora; atualiza em segundo plano) ---------- */
+const cacheLocal = {
+  chave: () => 'crm-dados:' + API_URL + ':' + (store.get('crm-alicerces-email') || ''),
+  db() { return new Promise((ok, falha) => { try { const r = indexedDB.open('crm-alicerces', 1); r.onupgradeneeded = () => r.result.createObjectStore('dados'); r.onsuccess = () => ok(r.result); r.onerror = () => falha(r.error); } catch (e) { falha(e); } }); },
+  async ler() { try { const db = await this.db(); return await new Promise(ok => { const q = db.transaction('dados').objectStore('dados').get(this.chave()); q.onsuccess = () => ok(q.result || null); q.onerror = () => ok(null); }); } catch { return null; } },
+  async gravar(d) { try { const db = await this.db(); db.transaction('dados', 'readwrite').objectStore('dados').put({ quando: Date.now(), d }, this.chave()); } catch {} },
+  async apagar() { try { const db = await this.db(); db.transaction('dados', 'readwrite').objectStore('dados').clear(); } catch {} }
+};
+let salvarCacheT = null;
+function guardarCopiaLocal() { clearTimeout(salvarCacheT); salvarCacheT = setTimeout(() => { if (D && !fila.length) cacheLocal.gravar(D); }, 2500); }
+
 /* ---------- Gravação em segundo plano (ações simples) ----------
    A tela muda na hora; o pedido entra numa fila e é enviado em ordem.
    Se a planilha recusar, a mudança é desfeita na tela e aparece um aviso. */
-const fila = []; let enviandoFila = false;
-function emSegundoPlano(descricao, aplicarLocal, acao, dados, msg) {
+const fila = [], falhas = []; let enviandoFila = false, salvoAgora = 0;
+let tmpSeq = 0; const idTemp = () => 'TMP-' + (++tmpSeq);
+/**
+ * Ação em segundo plano: a tela muda na hora (aplicarLocal), o pedido vai para a fila e é gravado em ordem.
+ * Cada operação leva um código único (idOp): se for reenviada, o servidor não grava duas vezes.
+ * Se falhar: a tela volta ao que era e a operação fica disponível em "Tentar de novo".
+ */
+function emSegundoPlano(descricao, aplicarLocal, acao, dados, msg, aoConcluir, idOp) {
   const r = aplicarLocal(), desfazer = typeof r === 'function' ? r : r.desfazer, limpar = typeof r === 'function' ? null : r.limpar;
   redesenhar(); if (msg) toast(msg);
-  fila.push({ descricao, desfazer, limpar, acao, dados });
+  fila.push({ descricao, aplicarLocal, desfazer, limpar, acao, dados, msg, aoConcluir, idOp: idOp || novoIdOp() });
   atualizarSync(); processarFila();
 }
 async function processarFila() {
   if (enviandoFila) return; enviandoFila = true;
   while (fila.length) {
     const item = fila[0];
-    try { const r = await api(item.acao, item.dados); if (item.limpar) item.limpar(); aplicarMudancas(r.mudancas); }
-    catch (err) {
+    try {
+      const r = await api(item.acao, item.dados, item.idOp);
+      if (item.limpar) item.limpar(); aplicarMudancas(r.mudancas); salvoAgora = Date.now();
+      if (item.aoConcluir) try { item.aoConcluir(r.resultado); } catch {}
+    } catch (err) {
       if (err.codigo === 'SESSAO') { fila.length = 0; break; }
       try { item.desfazer(); } catch {}
-      toast(`Não foi salvo (${item.descricao}): ${err.message}`, true);
+      falhas.push(item);
+      toastAcao(`Erro ao salvar (${item.descricao}): ${err.message}`, 'Tentar de novo', tentarDeNovo);
     }
     fila.shift(); atualizarSync(); redesenhar();
   }
-  enviandoFila = false; atualizarSync();
+  enviandoFila = false; atualizarSync(); guardarCopiaLocal();
+}
+function tentarDeNovo() {
+  const lista = falhas.splice(0);
+  lista.forEach(it => emSegundoPlano(it.descricao, it.aplicarLocal, it.acao, it.dados, '', it.aoConcluir, it.idOp));
 }
 function atualizarSync() {
   const s = $('sync-status'); if (!s) return;
   const n = fila.length + (ocupado ? 1 : 0);
   document.body.classList.toggle('busy', n > 0);
-  s.textContent = n ? (fila.length ? `Salvando ${fila.length}…` : 'Sincronizando…') : 'Tudo salvo';
+  s.classList.toggle('erro', !fila.length && falhas.length > 0);
+  if (fila.length) s.innerHTML = `Salvando${fila.length > 1 ? ' ' + fila.length : ''}…`;
+  else if (falhas.length) s.innerHTML = `Erro ao salvar — <button type="button" class="link-button" data-action="sync-retry">tentar novamente</button>`;
+  else if (ocupado) s.textContent = 'Atualizando…';
+  else s.textContent = Date.now() - salvoAgora < 4000 ? 'Salvo ✓' : 'Tudo salvo';
+  if (!n && !falhas.length && Date.now() - salvoAgora < 4000) setTimeout(atualizarSync, 4100);
 }
-addEventListener('beforeunload', e => { if (fila.length) { e.preventDefault(); e.returnValue = ''; } });
-const salvar = (tabela, registro, msg = 'Salvo na planilha.') => gravar('salvar', { tabela, registro }, msg);
+addEventListener('beforeunload', e => { if (fila.length || falhas.length) { e.preventDefault(); e.returnValue = ''; } });
+const salvar = (tabela, registro, msg = 'Salvo.') => gravar('salvar', { tabela, registro }, msg);
+/** Grava um registro em segundo plano, com cópia temporária na tela até o servidor devolver o definitivo. */
+function salvarEmSegundoPlano(tabela, registro, descricao, msg, aoConcluir) {
+  const chave = IDS[tabela], novo = !registro[chave];
+  return emSegundoPlano(descricao, () => {
+    const lista = D.tabelas[tabela] = D.tabelas[tabela] || [];
+    if (novo) {
+      const tmp = { ...registro, [chave]: idTemp(), _tmp: true };
+      lista.push(tmp);
+      const tira = () => { const i = lista.indexOf(tmp); if (i >= 0) lista.splice(i, 1); };
+      return { desfazer: tira, limpar: tira };
+    }
+    const atual = lista.find(x => x[chave] === registro[chave]); if (!atual) return () => {};
+    const antes = {}; Object.keys(registro).forEach(k => { antes[k] = atual[k]; }); Object.assign(atual, registro);
+    return () => Object.assign(atual, antes);
+  }, 'salvar', { tabela, registro }, msg, aoConcluir);
+}
+let recarregando = null;
 async function recarregar(msg) {
   if (fila.length) return; // espera a fila terminar para não sobrescrever a tela
+  if (recarregando) return recarregando; // não faz duas buscas iguais ao mesmo tempo
   setOcupado(true);
-  try { D = await api('carregar'); redesenhar(); if (msg) toast(msg); }
-  catch (e) { if (e.codigo !== 'SESSAO' && e.codigo !== 'TROCAR_SENHA') toast(e.message); }
-  finally { setOcupado(false); }
+  recarregando = (async () => {
+    try { const r = await carregarDados(); if (!fila.length) { D = r; redesenhar(); guardarCopiaLocal(); } if (msg) toast(msg); }
+    catch (e) { if (e.codigo !== 'SESSAO' && e.codigo !== 'TROCAR_SENHA') toast(e.message); }
+    finally { setOcupado(false); recarregando = null; }
+  })();
+  return recarregando;
 }
 function setOcupado(v) { ocupado = v; atualizarSync(); }
 
@@ -364,7 +429,7 @@ function setOcupado(v) { ocupado = v; atualizarSync(); }
 function telaLogin(msg = '', emailDigitado = '') {
   document.body.classList.add('auth');
   $('auth').innerHTML = `<form class="auth-card" id="login-form" novalidate>
-    <div class="brand"><span class="brand-mark">a</span><span>alicerces<small>CRM EDITORIAL</small></span></div>
+    <div class="brand"><span class="brand-mark">a</span><span>CRM</span></div>
     <h1>Entrar</h1><p class="subtitle">Use o e-mail cadastrado pela gestão.</p>
     ${API_URL ? '' : '<div class="notice">Esta página ainda não está ligada ao Apps Script. Fale com a administradora do CRM.</div>'}
     <label class="field">E-mail<input type="email" name="email" autocomplete="username" required value="${esc(emailDigitado || store.get('crm-alicerces-email') || '')}"></label>
@@ -388,7 +453,7 @@ function telaLogin(msg = '', emailDigitado = '') {
 }
 function telaSenha(obrigatoria) {
   const html = `<form class="${obrigatoria ? 'auth-card' : 'form-body'}" id="senha-form">
-    ${obrigatoria ? '<div class="brand"><span class="brand-mark">a</span><span>alicerces<small>CRM EDITORIAL</small></span></div><h1>Crie sua senha</h1><p class="subtitle">Você entrou com a senha provisória. Agora escolha uma senha só sua.</p>' : ''}
+    ${obrigatoria ? '<div class="brand"><span class="brand-mark">a</span><span>CRM</span></div><h1>Crie sua senha</h1><p class="subtitle">Você entrou com a senha provisória. Agora escolha uma senha só sua.</p>' : ''}
     <label class="field">Senha atual${obrigatoria ? ' (provisória)' : ''}<input type="password" name="senhaAtual" required autocomplete="current-password"></label>
     <label class="field">Nova senha (mínimo 8 caracteres)<input type="password" name="novaSenha" minlength="8" required autocomplete="new-password"></label>
     <label class="field">Repita a nova senha<input type="password" name="confirma" minlength="8" required autocomplete="new-password"></label>
@@ -412,17 +477,27 @@ function telaSenha(obrigatoria) {
 }
 async function sair(expirou) {
   if (!expirou && token) { try { await api('sair'); } catch {} }
-  token = ''; D = null; store.del(TOKEN_KEY);
+  token = ''; D = null; store.del(TOKEN_KEY); cacheLocal.apagar(); fila.length = 0; falhas.length = 0;
   if (detail.open) detail.close(); if (formDialog.open) formDialog.close();
   telaLogin(expirou ? 'Sua sessão expirou. Entre novamente.' : '');
 }
 async function iniciar() {
   document.body.classList.add('auth');
-  $('auth').innerHTML = '<div class="auth-card"><div class="brand"><span class="brand-mark">a</span><span>alicerces<small>CRM EDITORIAL</small></span></div><p class="subtitle">Carregando dados da planilha…</p></div>';
+  $('auth').innerHTML = '<div class="auth-card"><div class="brand"><span class="brand-mark">a</span><span>CRM</span></div><p class="subtitle">Carregando o sistema…</p></div>';
+  // abre na hora com a última cópia guardada neste navegador e atualiza em segundo plano
+  const copia = await cacheLocal.ler();
+  if (copia && copia.d && copia.d.usuario && copia.d.tabelas && Date.now() - copia.quando < 7 * 864e5) {
+    D = copia.d;
+    document.body.classList.remove('auth'); $('auth').innerHTML = '';
+    page = NAV.some(n => n[0] === location.hash.slice(1)) ? location.hash.slice(1) : 'inicio';
+    try { render(); } catch (err) { console.error(err); }
+    recarregar.ultima = Date.now();
+    return recarregar();
+  }
   try {
-    const r = await api('carregar');
+    const r = await carregarDados();
     if (!r || !r.usuario || !r.tabelas) throw new Error('A planilha respondeu sem os dados esperados (' + (r ? Object.keys(r).join(', ') || 'vazio' : String(r)) + '). Confira se o Apps Script foi publicado como Nova versão.');
-    D = r;
+    D = r; guardarCopiaLocal();
     document.body.classList.remove('auth'); $('auth').innerHTML = '';
     page = NAV.some(n => n[0] === location.hash.slice(1)) ? location.hash.slice(1) : 'inicio';
     try { render(); } catch (err) { console.error(err); window.CRM_MOSTRAR_ERRO('Erro ao montar a tela: ' + err.message, String(err.stack || '').split('\n').slice(0, 5).join('\n') + '\nServidor ' + (D && D.versao)); }
@@ -430,6 +505,11 @@ async function iniciar() {
 }
 
 /* ---------- Componentes ---------- */
+function toastAcao(text, rotulo, fn) {
+  const t = $('toast'); t.innerHTML = ''; t.append(document.createTextNode(text + ' '));
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'toast-acao'; b.textContent = rotulo; b.onclick = () => { t.classList.remove('visible'); fn(); };
+  t.append(b); t.classList.add('erro', 'visible'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('visible'), 12000);
+}
 function toast(text, erro = false) { const t = $('toast'); t.textContent = text; t.classList.toggle('erro', erro); t.classList.add('visible'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('visible'), erro ? 9000 : 3500); }
 const badge = (t, c = 'teal') => `<span class="pill ${c}">${esc(t)}</span>`;
 const heading = (k, t, s, a = '') => `<div class="page-heading"><div><div class="eyebrow">${k}</div><h1>${t}</h1><p class="subtitle">${s}</p></div><div class="heading-actions">${a}</div></div>`;
@@ -479,9 +559,12 @@ function render() {
   $('breadcrumb').textContent = page === 'inicio' ? 'Visão geral' : NAV.find(n => n[0] === page)[1];
   $('profile').innerHTML = `<span class="avatar">${esc(iniciais(u.nome))}</span><div>${esc(u.nome)}<small>${esc(u.perfil || '')}</small></div>`;
   $('top-avatar').textContent = iniciais(u.nome);
-  $('env-chip').innerHTML = `<span></span> ${esc(D.planilha || 'Planilha')}`;
+  $('env-chip').innerHTML = /teste/i.test(D.planilha || '') ? '<span></span> Ambiente de teste' : ''; $('env-chip').hidden = !/teste/i.test(D.planilha || '');
   $('date-label').textContent = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' });
+  const kanbansAntes = [...main.querySelectorAll('.kanban, .table-wrap')].map(k => k.scrollLeft), paginaAntes = main.dataset.pagina, yAntes = window.scrollY;
+  main.dataset.pagina = page;
   main.innerHTML = ({ inicio: dashboard, prospeccao: prospeccao, clientes: clientesPage, agenda: agendaPage, tarefas: tarefasPage, equipe: equipePage, relatorios: relatoriosPage, configuracoes: configPage }[page])();
+  if (paginaAntes === page) { main.querySelectorAll('.kanban, .table-wrap').forEach((k, n) => { if (kanbansAntes[n]) k.scrollLeft = kanbansAntes[n]; }); if (Math.abs(window.scrollY - yAntes) > 2) window.scrollTo(0, yAntes); }
 }
 
 /* ---------- Início ---------- */
@@ -662,11 +745,17 @@ function formResultadoAcomp(c) {
   const feito = c.STATUS === 'Concluído';
   showForm(c.NOME, `<p class="subtitle">${esc((escola(c.ID_ESCOLA) || {}).NOME_ESCOLA || '')}</p><fieldset class="field multi"><legend>O que aconteceu neste acompanhamento? *</legend>${ops.map(o => `<label class="check-field"><input type="checkbox" name="res_${esc(o)}" data-bool ${atual.includes(o) ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</fieldset>` + texto('Observação (opcional)', 'OBSERVACAO', c.OBSERVACAO)
     + `<p class="visual-tip">Três acompanhamentos seguidos com “Não interagiu” criam uma tarefa para o consultor pedagógico ligar para a escola no acompanhamento seguinte.</p>`,
-    async v => {
+    v => {
       const RESULTADO = ops.filter(o => v['res_' + o]);
       if (!RESULTADO.length) throw new Error('Marque pelo menos uma opção.');
-      const r = await gravar('marcarChecklist', { ID_ITEM_CHECK: c.ID_ITEM_CHECK, acao: feito ? 'resultado' : 'concluir', RESULTADO, OBSERVACAO: v.OBSERVACAO }, feito ? 'Resultado atualizado.' : 'Acompanhamento registrado.');
-      if (r && r.tarefa) toast('3 acompanhamentos seguidos sem interação: tarefa “Ligar para a escola” criada para o consultor pedagógico.');
+      if (RESULTADO.includes('Não interagiu') && RESULTADO.some(x => /agendad/i.test(x))) throw new Error('"Não interagiu" não combina com um agendamento feito.');
+      emSegundoPlano('“' + c.NOME + '”', () => {
+        const antes = { STATUS: c.STATUS, RESULTADO: c.RESULTADO, OBSERVACAO: c.OBSERVACAO, CONCLUIDO_EM: c.CONCLUIDO_EM, CONCLUIDO_POR: c.CONCLUIDO_POR };
+        Object.assign(c, { RESULTADO: RESULTADO.join(', '), OBSERVACAO: v.OBSERVACAO }, feito ? {} : { STATUS: 'Concluído', CONCLUIDO_EM: agora(), CONCLUIDO_POR: eu().id });
+        return () => Object.assign(c, antes);
+      }, 'marcarChecklist', { ID_ITEM_CHECK: c.ID_ITEM_CHECK, acao: feito ? 'resultado' : 'concluir', RESULTADO, OBSERVACAO: v.OBSERVACAO }, feito ? 'Resultado atualizado.' : 'Acompanhamento registrado.',
+        r => { if (r && r.tarefa) toast('3 acompanhamentos seguidos sem interação: tarefa “Ligar para a escola” criada para o consultor pedagógico.'); });
+      return true;
     }, feito ? 'Salvar' : 'Concluir acompanhamento');
 }
 function marcarCk(id, acao, botao) {
@@ -721,6 +810,8 @@ function registrarTentativaRapida(o, canal) {
 function abrirEscola(id, aba = 0) { detailId = id; detailTab = aba; renderDetail(); if (!detail.open) detail.showModal(); }
 function renderDetail() {
   const e = escola(detailId); if (!e) { if (detail.open) detail.close(); return; }
+  const corpoAntes = detail.querySelector('.dialog-body'), rolagem = { corpo: corpoAntes ? corpoAntes.scrollTop : 0, dialogo: detail.scrollTop, aba: detailTab, id: detailId };
+  requestAnimationFrame(() => { if (rolagem.aba !== detailTab || rolagem.id !== detailId) return; const c = detail.querySelector('.dialog-body'); if (c) c.scrollTop = rolagem.corpo; detail.scrollTop = rolagem.dialogo; });
   const o = oportunidadeDe(e.ID_ESCOLA), cli = e.STATUS_GERAL === 'Cliente';
   $('detail-content').innerHTML = `<div class="dialog-head"><div><div class="eyebrow">${cli ? 'CLIENTE 360°' : 'FICHA DA ESCOLA'} · ${esc(e.ID_ESCOLA)}${e.CODIGO_ELP ? ' · ELP ' + esc(e.CODIGO_ELP) : ''}</div><h2 id="detail-title">${esc(e.NOME_ESCOLA)}</h2><p>${esc(e.CIDADE || '')}${e.UF ? ' · ' + esc(e.UF) : ''}${o ? ' · ' + esc(nomeUsuario(o.RESPONSAVEL_ATUAL)) : ''}${cli && e.CLIENTE_DESDE ? ' · ' + esc(desdeTxt(e)) : ''}</p><div class="detail-summary">${badge(e.STATUS_GERAL || '—', e.STATUS_GERAL === 'Não avançou' ? 'red' : 'teal')}${cli && !e.CODIGO_ELP ? badge('Sem código ELP', 'red') : ''}${o && !encerrada(o) ? badge(o.ETAPA || '—', 'orange') : ''}${e.FAIXA_ALUNOS ? badge(e.FAIXA_ALUNOS + ' alunos', '') : ''}${e.SEGMENTOS_ATUAIS ? badge(e.SEGMENTOS_ATUAIS, '') : ''}</div></div><button class="icon-button" data-action="close-detail" aria-label="Fechar ficha">×</button></div><div class="detail-tabs" role="tablist" aria-label="Seções da ficha">${TABS.map((t, i) => `<button role="tab" id="tab-${i}" aria-selected="${detailTab === i}" aria-controls="detail-panel" tabindex="${detailTab === i ? 0 : -1}" data-action="detail-tab" data-tab="${i}" class="${detailTab === i ? 'active' : ''}">${t}</button>`).join('')}</div><div class="dialog-body" role="tabpanel" id="detail-panel" aria-labelledby="tab-${detailTab}">${corpoFicha(e, o)}</div>`;
 }
@@ -775,8 +866,10 @@ function corpoFicha(e, o) {
       return `<div class="inline-actions">${btn('+ Nova tarefa', 'new-task', '', `data-id="${esc(id)}"`)}</div><p class="visual-tip">Pedidos para outras áreas também são tarefas: escolha a pessoa responsável. Tudo fica registrado em “Tentativas e atividades”.</p>` + (ts.length ? `<section class="panel">${ts.map(linhaTarefa).join('')}</section>` : vazio('Nenhuma tarefa para esta escola.'));
     }
     case 8: {
-      const hs = T('HISTORICO').filter(h => h.ID_ESCOLA === id).reverse();
-      return hs.length ? `<div class="table-wrap"><table><thead><tr><th>QUANDO</th><th>QUEM</th><th>O QUÊ</th><th>DETALHE</th></tr></thead><tbody>${hs.map(h => `<tr><td>${dataHora(h.DATA_HORA)}</td><td>${esc(nomeUsuario(h.USUARIO))}</td><td>${esc(h.ACAO)} · ${esc(h.ENTIDADE)}</td><td>${h.CAMPO_ALTERADO ? `${esc(h.CAMPO_ALTERADO)}: <s>${esc(h.VALOR_ANTERIOR) || '∅'}</s> → ${esc(h.VALOR_NOVO) || '∅'}` : esc(h.ID_ENTIDADE)}</td></tr>`).join('')}</tbody></table></div><p class="visual-tip">A ficha mostra os 400 registros de histórico mais recentes do CRM. O histórico completo fica na aba HISTORICO da planilha.</p>` : vazio('Sem histórico ainda.');
+      const hc = historicoCache[id];
+      if (!hc || Date.now() - hc.quando > 60000) { buscarHistorico(id); if (!hc) return '<p class="secondary-text">Carregando o histórico…</p>'; }
+      const vistos = new Set(); const hs = hc.linhas.concat(T('HISTORICO').filter(h => h.ID_ESCOLA === id)).filter(h => !vistos.has(h.ID_HISTORICO) && vistos.add(h.ID_HISTORICO)).sort((a, b) => String(a.DATA_HORA).localeCompare(b.DATA_HORA)).reverse();
+      return hs.length ? `<div class="table-wrap"><table><thead><tr><th>QUANDO</th><th>QUEM</th><th>O QUÊ</th><th>DETALHE</th></tr></thead><tbody>${hs.map(h => `<tr><td>${dataHora(h.DATA_HORA)}</td><td>${esc(nomeUsuario(h.USUARIO))}</td><td>${esc(h.ACAO)} · ${esc(h.ENTIDADE)}</td><td>${h.CAMPO_ALTERADO ? `${esc(h.CAMPO_ALTERADO)}: <s>${esc(h.VALOR_ANTERIOR) || '∅'}</s> → ${esc(h.VALOR_NOVO) || '∅'}` : esc(h.ID_ENTIDADE)}</td></tr>`).join('')}</tbody></table></div><p class="visual-tip">Alterações feitas nesta escola (as 500 mais recentes).</p>` : vazio('Sem histórico ainda.');
     }
   }
   return '';
@@ -784,6 +877,12 @@ function corpoFicha(e, o) {
 /* ---------- Tratativas e atividades: histórico central da escola (v1.12) ---------- */
 const GRUPO_HIST = a => a.TIPO_ATIVIDADE === 'Tentativa de contato' ? 'tentativas' : ['Tarefa', 'Automação'].includes(a.TIPO_ATIVIDADE) || (a.ID_TAREFA && a.TIPO_ATIVIDADE !== 'Renovação') ? 'tarefas'
   : /^(Checklist|Renovação|Pedagógico liberado|Contratação|Mudança de etapa|Reabertura|Encerramento)/.test(a.TIPO_ATIVIDADE || '') ? 'processos' : 'tratativas';
+const historicoCache = {}, buscandoHist = {};
+async function buscarHistorico(id) {
+  if (buscandoHist[id]) return; buscandoHist[id] = true;
+  try { historicoCache[id] = { quando: Date.now(), linhas: await api('historico', { ID_ESCOLA: id }) }; if (detail.open && detailId === id && detailTab === 8) renderDetail(); }
+  catch (e) { toast(e.message, true); } finally { buscandoHist[id] = false; }
+}
 function historicoEscola(e, o) {
   const id = e.ID_ESCOLA;
   const at = T('ATIVIDADES').filter(a => a.ID_ESCOLA === id).sort((a, b) => String(b.DATA_HORA).localeCompare(a.DATA_HORA));
@@ -876,8 +975,13 @@ function abrirTarefa(id) {
   async v => {
     const { comentario, ...reg } = v;
     const mudou = {}; Object.keys(reg).forEach(k => { if (String(reg[k] ?? '') !== String(k === 'PRAZO' ? dia(t[k]) : t[k] ?? '')) mudou[k] = reg[k]; });
-    if (Object.keys(mudou).length) await salvar('TAREFAS', { ID_TAREFA: id, ...mudou }, 'Tarefa atualizada.');
-    if (comentario) await gravar('comentarTarefa', { ID_TAREFA: id, MENSAGEM: comentario }, 'Comentário publicado.');
+    if (Object.keys(mudou).length) salvarEmSegundoPlano('TAREFAS', { ID_TAREFA: id, ...mudou }, 'tarefa “' + t.TITULO + '”', 'Tarefa atualizada.');
+    if (comentario) emSegundoPlano('comentário', () => {
+      const lista = D.tabelas.MENSAGENS = D.tabelas.MENSAGENS || [], tmp = { ID_MENSAGEM: idTemp(), ID_TAREFA: id, ID_ESCOLA: t.ID_ESCOLA, USUARIO: eu().id, DATA_HORA: agora(), MENSAGEM: comentario, _tmp: true };
+      lista.push(tmp); const tira = () => { const i = lista.indexOf(tmp); if (i >= 0) lista.splice(i, 1); };
+      return { desfazer: tira, limpar: tira };
+    }, 'comentarTarefa', { ID_TAREFA: id, MENSAGEM: comentario }, 'Comentário publicado.');
+    return true;
   });
 }
 
@@ -922,7 +1026,7 @@ function relatoriosPage() {
   const painelPed = etP.map(n => linhaProc(n, procs.filter(p => p.etapaP === n).length, 'P:' + n)).join('')
     + linhaProc('Processo pedagógico concluído', procs.filter(p => p.etapaP === 'Concluído').length, 'P:Concluído', 'sep')
     + linhaProc('Pedagógico ainda não liberado', procs.filter(p => p.etapaP === 'SEM').length, 'P:SEM');
-  return heading('DADOS QUE ORIENTAM O CUIDADO', 'Relatórios', 'Indicadores calculados com os dados da planilha.', btn('Exportar escolas (CSV)', 'export-csv', 'secondary'))
+  return heading('DADOS QUE ORIENTAM O CUIDADO', 'Relatórios', 'Indicadores calculados com os dados do CRM.', btn('Exportar escolas (CSV)', 'export-csv', 'secondary'))
     + `<div class="toolbar">${filtroRegiao()}${regiao ? `<small class="secondary-text">Indicadores filtrados pela região <strong>${esc(regiao)}</strong></small>` : ''}</div>`
     + `<section class="panel region-panel"><div class="panel-head"><h2>Clientes por região</h2>${badge(totCli + ' clientes na carteira', 'teal')}</div><div class="report-bars">${regs.map(x => `<div class="funnel-row ${regiao && regiao !== x.r ? 'dim-row' : ''}"><span>${esc(x.r)}</span><div class="bar-track"><div class="bar-fill" style="width:${x.cli / maxR * 100}%"></div></div><strong>${x.cli} ${x.cli === 1 ? 'cliente' : 'clientes'}</strong><small class="secondary-text">${pct(x.cli, totCli)} da carteira</small></div>`).join('')}</div><p class="visual-tip">Percentual = clientes da região ÷ total de clientes ativos (${totCli}) × 100. Região pela UF da escola.</p></section>`
     + `<section class="panel alunos-panel"><div class="panel-head"><h2>Alunos por segmento</h2>${anos.length ? `<label class="secondary-text">Ano letivo <select id="ano-alunos" aria-label="Ano letivo dos kits">${anos.map(a => `<option ${a === anoA ? 'selected' : ''}>${a}</option>`).join('')}</select></label>` : ''}</div>`
@@ -1074,7 +1178,7 @@ function formTentativa(o) {
 function formAtividade(e) {
   const o = oportunidadeDe(e.ID_ESCOLA);
   showForm('Anotação / atividade', linha(campo('Tipo', 'TIPO_ATIVIDADE', 'text', 'Anotação', true, 'list="tipos-atividade"'), lista('Canal', 'CANAL', opts(L('CANAL'), '', 'Não se aplica'))) + `<datalist id="tipos-atividade">${['Anotação', 'Ligação', 'E-mail', 'WhatsApp', 'Visita', 'Envio de amostra', 'Degustação'].map(t => `<option value="${t}">`).join('')}</datalist>` + campo('Data e hora', 'DATA_HORA', 'datetime-local', agora(), true) + texto('Descrição', 'DESCRICAO', '', true) + linha(campo('Próxima ação', 'PROXIMA_ACAO'), campo('Prazo da próxima ação', 'PRAZO_PROXIMA_ACAO', 'date')),
-    v => salvar('ATIVIDADES', { ID_ESCOLA: e.ID_ESCOLA, ID_OPORTUNIDADE: o ? o.ID_OPORTUNIDADE : '', ...v }, 'Atividade registrada.'));
+    v => { salvarEmSegundoPlano('ATIVIDADES', { ID_ESCOLA: e.ID_ESCOLA, ID_OPORTUNIDADE: o ? o.ID_OPORTUNIDADE : '', USUARIO: eu().id, ...v }, 'atividade', 'Atividade registrada.'); return true; });
 }
 function formMoverEtapa(o) {
   showForm('Mover etapa', lista('Nova etapa', 'ETAPA', opts(L('ETAPA_PROSPECCAO'), o.ETAPA, false), true) + texto('Comentário (opcional)', 'DESCRICAO'), v => gravar('moverEtapa', { ID_OPORTUNIDADE: o.ID_OPORTUNIDADE, ...v }, 'Etapa atualizada.'), 'Mover');
@@ -1186,7 +1290,8 @@ function formTarefa(t, idEscola) {
     + linha(lista('Escola', 'ID_ESCOLA', optsEscolas(idEscola || '')), lista('Área', 'AREA', opts(L('AREA_DEMANDA'), '', '—')), campo('Tipo', 'TIPO', 'text', '', false, 'placeholder="Ex.: Retorno, Envio de amostra"'))
     + linha(lista('Responsável', 'RESPONSAVEL', optsUsuarios(eu().id), true), campo('Prazo', 'PRAZO', 'date', hoje(), true), lista('Prioridade', 'PRIORIDADE', opts(ST.prioridade, 'Normal', false)))
     + texto('Descrição / contexto', 'DESCRICAO') + `<p class="visual-tip">Para pedir algo a outra área, escolha a pessoa em Responsável. Se houver escola, o pedido fica registrado nas tratativas dela.</p>`,
-    v => { const reg = { ...v }; if (v.ID_ESCOLA) { const o = oportunidadeDe(v.ID_ESCOLA); if (o && !encerrada(o)) reg.ID_OPORTUNIDADE = o.ID_OPORTUNIDADE; } return salvar('TAREFAS', reg, 'Tarefa criada.'); });
+    v => { const reg = { ...v }; if (v.ID_ESCOLA) { const o = oportunidadeDe(v.ID_ESCOLA); if (o && !encerrada(o)) reg.ID_OPORTUNIDADE = o.ID_OPORTUNIDADE; }
+      salvarEmSegundoPlano('TAREFAS', { ...reg, STATUS: 'Aberta', SOLICITANTE: eu().id, DATA_CRIACAO: agora() }, 'tarefa “' + reg.TITULO + '”', 'Tarefa criada.'); return true; });
   ligarSugestaoResponsavel();
 }
 function formUsuario(u) {
@@ -1303,7 +1408,7 @@ async function lerArquivo(file) {
     imp.arquivo = file.name; imp.aba = wb.SheetNames.length > 1 ? nome : ''; imp.linhas = linhas;
     imp.ignoradas = matriz[0].filter((h, j) => String(h).trim() && !conhecidas.includes(cab[j])).map(String);
     imp.lote = 'IMP-' + hoje().replace(/-/g, '') + '-' + pad(new Date().getHours()) + pad(new Date().getMinutes()) + '-' + imp.tipo.slice(0, 3);
-    $('imp-status').textContent = `Conferindo ${linhas.length} linha(s) com a planilha do CRM…`;
+    $('imp-status').textContent = `Conferindo ${linhas.length} linha(s) com os dados do CRM…`;
     imp.previa = []; imp.avisos = [];
     let enviar = linhas;
     if (imp.tipo === 'RENOVACAO') {
@@ -1405,10 +1510,12 @@ addEventListener('click', async e => {
       case 'cli-view': viewClientes = ref; render(); break;
       case 'kcom-proc': kanbanComProc = ref; render(); break;
       case 'rel-ver': { const [tipo, val] = [ref.slice(0, 1), ref.slice(2)]; etapaComFiltro = tipo === 'C' ? (val === 'SEM' ? 'SEM' : val) : ''; etapaPedFiltro = tipo === 'P' ? val : ''; const r0 = regiao; setPage('clientes'); regiao = r0; etapaComFiltro = tipo === 'C' ? (val === 'SEM' ? 'SEM' : val) : ''; etapaPedFiltro = tipo === 'P' ? val : ''; viewClientes = 'lista'; render(); break; }
+      case 'sync-retry': tentarDeNovo(); break;
       case 'hist-filtro': filtroHist = ref || ''; renderDetail(); break;
       case 'nota-rapida': {
         const txt = ($('nota-rapida').value || '').trim(); if (!txt) { $('nota-rapida').focus(); toast('Escreva a tratativa antes de registrar.'); break; }
-        await salvar('ATIVIDADES', { ID_ESCOLA: esc_.ID_ESCOLA, ID_OPORTUNIDADE: o && !encerrada(o) ? o.ID_OPORTUNIDADE : '', TIPO_ATIVIDADE: $('nota-tipo').value, DESCRICAO: txt, DATA_HORA: agora() }, 'Tratativa registrada.');
+        $('nota-rapida').value = ''; // evita registrar duas vezes
+        salvarEmSegundoPlano('ATIVIDADES', { ID_ESCOLA: esc_.ID_ESCOLA, ID_OPORTUNIDADE: o && !encerrada(o) ? o.ID_OPORTUNIDADE : '', TIPO_ATIVIDADE: $('nota-tipo').value, DESCRICAO: txt, DATA_HORA: agora(), USUARIO: eu().id }, 'tratativa', 'Tratativa registrada.');
         break;
       }
       case 'open-school-tab': abrirEscola(b.dataset.id, Number(b.dataset.tab)); break;
