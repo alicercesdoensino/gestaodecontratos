@@ -174,6 +174,12 @@ span.ck-box{cursor:default}
 .dt-field .dt-btn:hover{background:var(--soft)}
 .field .dt-field .dt-nat{position:absolute;right:0;bottom:0;width:1px;height:1px;padding:0;margin:0;border:0;opacity:0;pointer-events:none}
 @media (max-width:760px){.ganhos-strip{flex-wrap:wrap}.ganhos-strip .ganhos-acoes{margin-left:0}}
+/* v1.16 — apagar card (gestor) / Lixeira */
+.card-acoes{display:inline-flex;align-items:center;gap:4px}
+.icon-button.card-del{width:28px;height:28px;font-size:14px;opacity:.5;display:inline-grid;place-items:center}
+.icon-button.card-del:hover,.icon-button.card-del:focus-visible{opacity:1;background:#fbe9e5}
+td.acoes-linha{white-space:nowrap}
+td.acoes-linha .button{margin-left:6px}
 </style>
   <script>
     /* ===== ENDEREÇO DA API (link /exec do Apps Script) ===== */
@@ -206,7 +212,7 @@ span.ck-box{cursor:default}
   <div class="shell">
     <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola ou código ELP…" aria-label="Buscar escola em todo o CRM"></label><button class="sync" data-action="refresh" id="sync-status" title="Atualizar dados da planilha" style="background:none">Tudo salvo</button><span class="date-label" id="date-label"></span><span class="avatar small" id="top-avatar"></span></div></header>
     <main id="main" tabindex="-1"></main>
-    <footer>ALICERCES · CRM <span>Versão da tela 1.15 · 09/10/2026</span></footer>
+    <footer>ALICERCES · CRM <span>Versão da tela 1.16 · 10/10/2026</span></footer>
   </div>
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-title"><div id="form-content"></div></dialog>
@@ -318,6 +324,27 @@ async function api(acao, dados = {}, idOp = '') {
   return json.resultado;
 }
 const IDS = { DEPARA_SEGMENTOS: 'ID_DEPARA', ESCOLAS: 'ID_ESCOLA', CONTATOS: 'ID_CONTATO', OPORTUNIDADES: 'ID_OPORTUNIDADE', ATIVIDADES: 'ID_ATIVIDADE', TAREFAS: 'ID_TAREFA', REUNIOES: 'ID_REUNIAO', CONTRATACOES: 'ID_CONTRATACAO', CONTRATOS: 'ID_CONTRATO', ANOS_LETIVOS: 'ID_ANO_LETIVO', RENOVACOES: 'ID_RENOVACAO', KITS_CONTRATADOS: 'ID_ITEM', PEDAGOGICO: 'ID_PEDAGOGICO', DEMANDAS: 'ID_DEMANDA', MENSAGENS: 'ID_MENSAGEM', DOCUMENTOS: 'ID_DOCUMENTO', USUARIOS: 'ID_USUARIO', HABILITACOES: 'ID_HABILITACAO', HISTORICO: 'ID_HISTORICO', CHECKLIST: 'ID_ITEM_CHECK', CHECKLIST_ETAPAS: 'ID_ETAPA' };
+/** Lixeira (v1.15): escolas excluídas e tudo ligado a elas saem das tabelas da tela e ficam em D.excluidas. */
+function separarExcluidas() {
+  if (!D || !D.tabelas) return;
+  const ex = D.excluidas = D.excluidas || {};
+  const voltou = new Set(T('ESCOLAS').filter(e => !e.EXCLUIDO_EM).map(e => e.ID_ESCOLA));
+  Object.keys(ex).forEach(nome => { // restauradas: voltam para as tabelas
+    const fora = ex[nome].filter(r => voltou.has(r.ID_ESCOLA)); if (!fora.length) return;
+    ex[nome] = ex[nome].filter(r => !voltou.has(r.ID_ESCOLA));
+    if (nome !== 'ESCOLAS') (D.tabelas[nome] = D.tabelas[nome] || []).push(...fora);
+  });
+  const idsEx = new Set(T('ESCOLAS').filter(e => e.EXCLUIDO_EM).map(e => e.ID_ESCOLA));
+  if (!idsEx.size) return;
+  Object.keys(D.tabelas).forEach(nome => {
+    const tab = D.tabelas[nome]; if (!Array.isArray(tab) || !tab.length || !('ID_ESCOLA' in tab[0] || tab.some(r => r.ID_ESCOLA))) return;
+    const sai = tab.filter(r => idsEx.has(r.ID_ESCOLA)); if (!sai.length) return;
+    D.tabelas[nome] = tab.filter(r => !idsEx.has(r.ID_ESCOLA));
+    ex[nome] = (ex[nome] || []).filter(r => !idsEx.has(r.ID_ESCOLA) || nome !== 'ESCOLAS').concat(sai);
+  });
+}
+const naLixeira = () => ((D && D.excluidas && D.excluidas.ESCOLAS) || []).slice().sort((a, b) => String(b.EXCLUIDO_EM).localeCompare(String(a.EXCLUIDO_EM)));
+const ligadosNaLixeira = id => Object.entries((D && D.excluidas) || {}).reduce((n, [k, rs]) => n + (k === 'ESCOLAS' ? 0 : rs.filter(r => r.ID_ESCOLA === id).length), 0);
 /** Junta na memória da tela só os registros que o servidor devolveu. */
 function aplicarMudancas(m) {
   if (!m || !D) return;
@@ -327,6 +354,7 @@ function aplicarMudancas(m) {
     if (nome === 'HISTORICO' && tab.length > 400) tab.splice(0, tab.length - 400);
   });
   if (m.USUARIOS) { const u = m.USUARIOS.find(x => x.ID_USUARIO === eu().id); if (u) Object.assign(D.usuario, { nome: u.NOME, perfil: u.PERFIL_PERMISSAO }); }
+  separarExcluidas();
 }
 /** Redesenha sem tirar o foco de quem está digitando na busca. */
 function redesenhar() {
@@ -435,7 +463,7 @@ async function recarregar(msg) {
   if (recarregando) return recarregando; // não faz duas buscas iguais ao mesmo tempo
   setOcupado(true);
   recarregando = (async () => {
-    try { const r = await carregarDados(); if (!fila.length) { D = r; redesenhar(); guardarCopiaLocal(); } if (msg) toast(msg); }
+    try { const r = await carregarDados(); if (!fila.length) { D = r; separarExcluidas(); redesenhar(); guardarCopiaLocal(); } if (msg) toast(msg); }
     catch (e) { if (e.codigo !== 'SESSAO' && e.codigo !== 'TROCAR_SENHA') toast(e.message); }
     finally { setOcupado(false); recarregando = null; }
   })();
@@ -505,7 +533,7 @@ async function iniciar() {
   // abre na hora com a última cópia guardada neste navegador e atualiza em segundo plano
   const copia = await cacheLocal.ler();
   if (copia && copia.d && copia.d.usuario && copia.d.tabelas && Date.now() - copia.quando < 7 * 864e5) {
-    D = copia.d;
+    D = copia.d; separarExcluidas();
     document.body.classList.remove('auth'); $('auth').innerHTML = '';
     page = NAV.some(n => n[0] === location.hash.slice(1)) ? location.hash.slice(1) : 'inicio';
     try { render(); } catch (err) { console.error(err); }
@@ -515,7 +543,7 @@ async function iniciar() {
   try {
     const r = await carregarDados();
     if (!r || !r.usuario || !r.tabelas) throw new Error('A planilha respondeu sem os dados esperados (' + (r ? Object.keys(r).join(', ') || 'vazio' : String(r)) + '). Confira se o Apps Script foi publicado como Nova versão.');
-    D = r; guardarCopiaLocal();
+    D = r; separarExcluidas(); guardarCopiaLocal();
     document.body.classList.remove('auth'); $('auth').innerHTML = '';
     page = NAV.some(n => n[0] === location.hash.slice(1)) ? location.hash.slice(1) : 'inicio';
     try { render(); } catch (err) { console.error(err); window.CRM_MOSTRAR_ERRO('Erro ao montar a tela: ' + err.message, String(err.stack || '').split('\n').slice(0, 5).join('\n') + '\nServidor ' + (D && D.versao)); }
@@ -523,10 +551,10 @@ async function iniciar() {
 }
 
 /* ---------- Componentes ---------- */
-function toastAcao(text, rotulo, fn) {
+function toastAcao(text, rotulo, fn, erro = true) {
   const t = $('toast'); t.innerHTML = ''; t.append(document.createTextNode(text + ' '));
   const b = document.createElement('button'); b.type = 'button'; b.className = 'toast-acao'; b.textContent = rotulo; b.onclick = () => { t.classList.remove('visible'); fn(); };
-  t.append(b); t.classList.add('erro', 'visible'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('visible'), 12000);
+  t.append(b); t.classList.toggle('erro', erro); t.classList.add('visible'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('visible'), 12000);
 }
 function toast(text, erro = false) { const t = $('toast'); t.textContent = text; t.classList.toggle('erro', erro); t.classList.add('visible'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('visible'), erro ? 9000 : 3500); }
 const badge = (t, c = 'teal') => `<span class="pill ${c}">${esc(t)}</span>`;
@@ -697,14 +725,14 @@ function prospeccao() {
   const base = statusFilter === 'perdidas' ? perdidas() : leads();
   const ops = filtrarOps(base);
   const extra = `<select id="stage-filter" aria-label="Situação"><option value="">Em andamento</option><option value="perdidas" ${statusFilter === 'perdidas' ? 'selected' : ''}>Não avançaram</option></select>`;
-  const tabela = `<section class="panel table-wrap"><table><thead><tr><th>ESCOLA</th><th>ETAPA / STATUS</th><th>RESPONSÁVEL</th><th>TENTATIVAS</th><th>ÚLTIMA</th><th>PRÓXIMA</th></tr></thead><tbody>${ops.map(o => `<tr><td>${escolaCell(escola(o.ID_ESCOLA))}</td><td>${badge(o.STATUS === 'Perdido' ? 'Não avançou' : o.ETAPA || '—', o.STATUS === 'Perdido' ? 'red' : 'teal')}${o.STATUS === 'Perdido' ? `<br><small class="secondary-text">${esc(o.MOTIVO_PERDA)}</small>` : o.STATUS && o.STATUS !== 'Em andamento' ? ' ' + badge(o.STATUS, 'orange') : ''}</td><td>${esc(nomeUsuario(o.RESPONSAVEL_ATUAL))}</td><td>${Number(o.TENTATIVAS_PRE_REUNIAO || 0)} / ${maxTent()}</td><td>${curta(o.DATA_ULTIMA_TENTATIVA)}</td><td>${o.STATUS === 'Perdido' ? '—' : curta(o.PROXIMA_TENTATIVA)}</td></tr>`).join('')}</tbody></table>${!ops.length ? vazio(T('ESCOLAS').length ? 'Nenhuma escola encontrada para estes filtros.' : 'Ainda não há escolas cadastradas. Clique em “+ Nova escola” para começar.') : ''}</section>`;
+  const tabela = `<section class="panel table-wrap"><table><thead><tr><th>ESCOLA</th><th>ETAPA / STATUS</th><th>RESPONSÁVEL</th><th>TENTATIVAS</th><th>ÚLTIMA</th><th>PRÓXIMA</th>${eu().gestor ? '<th></th>' : ''}</tr></thead><tbody>${ops.map(o => `<tr><td>${escolaCell(escola(o.ID_ESCOLA))}</td><td>${badge(o.STATUS === 'Perdido' ? 'Não avançou' : o.ETAPA || '—', o.STATUS === 'Perdido' ? 'red' : 'teal')}${o.STATUS === 'Perdido' ? `<br><small class="secondary-text">${esc(o.MOTIVO_PERDA)}</small>` : o.STATUS && o.STATUS !== 'Em andamento' ? ' ' + badge(o.STATUS, 'orange') : ''}</td><td>${esc(nomeUsuario(o.RESPONSAVEL_ATUAL))}</td><td>${Number(o.TENTATIVAS_PRE_REUNIAO || 0)} / ${maxTent()}</td><td>${curta(o.DATA_ULTIMA_TENTATIVA)}</td><td>${o.STATUS === 'Perdido' ? '—' : curta(o.PROXIMA_TENTATIVA)}</td>${eu().gestor ? `<td>${(e => `<button type="button" class="icon-button card-del" data-action="lixeira-enviar" data-id="${esc(o.ID_ESCOLA)}" title="Apagar card (vai para a Lixeira)" aria-label="Apagar ${esc(e ? e.NOME_ESCOLA : '')}">🗑</button>`)(escola(o.ID_ESCOLA))}</td>` : ''}</tr>`).join('')}</tbody></table>${!ops.length ? vazio(T('ESCOLAS').length ? 'Nenhuma escola encontrada para estes filtros.' : 'Ainda não há escolas cadastradas. Clique em “+ Nova escola” para começar.') : ''}</section>`;
   const kanban = `<p class="visual-tip">Arraste os cards entre as etapas ou altere a etapa na ficha da escola.</p><div class="kanban">${etapas.map(et => { const col = ops.filter(o => o.ETAPA === et); return `<section class="kanban-column" data-stage="${esc(et)}"><div class="kanban-heading"><span><i class="stage-dot"></i>${esc(et)}</span>${badge(col.length, '')}</div>${col.map(cardLead).join('')}${!col.length ? vazio('Novas conversas<br>podem chegar aqui.') : ''}</section>`; }).join('')}</div>`;
   return heading('DO PRIMEIRO OLÁ À PARCERIA', 'Prospecção', 'Acompanhe cada conversa e transforme interesse em conexão.', (eu().gestor ? btn('⬆ Importar', 'import', 'secondary', 'data-tipo="PROSPECCAO"') : '') + btn('+ Nova escola', 'new-school')) + filtros(statusFilter !== 'perdidas', extra) + (view === 'list' || statusFilter === 'perdidas' ? tabela : kanban);
 }
 function cardLead(o) {
   const e = escola(o.ID_ESCOLA), c = principal(o.ID_ESCOLA), n = Number(o.TENTATIVAS_PRE_REUNIAO || 0), m = maxTent();
   const atrasada = o.PROXIMA_TENTATIVA && dia(o.PROXIMA_TENTATIVA) < hoje();
-  return `<article class="lead-card" draggable="true" data-id="${esc(o.ID_OPORTUNIDADE)}"><div class="card-head"><div><h3>${escolaBtn(e)}</h3><p class="location">${esc(e.CIDADE || '')}${e.UF ? ' · ' + esc(e.UF) : ''}</p></div>${o.STATUS && o.STATUS !== 'Em andamento' ? badge(o.STATUS, 'orange') : atrasada ? badge('Atrasada', 'red') : ''}</div>${o.ORIGEM_LEAD ? badge(o.ORIGEM_LEAD, '') : ''}<div class="card-info">${c ? `<strong>${esc(c.NOME)}</strong><br>${esc(c.CARGO_FUNCAO || '')}` : '<span class="secondary-text">Sem contato cadastrado</span>'}</div><div class="attempts" aria-label="${n} de ${m} tentativas">${Array.from({ length: m }, (_, i) => `<i class="${i < n ? 'filled' : ''}"></i>`).join('')}</div><div class="card-info">${n}/${m} tentativas · última: ${curta(o.DATA_ULTIMA_TENTATIVA)}<br>Próxima: <strong>${curta(o.PROXIMA_TENTATIVA)}</strong></div><div class="card-bottom"><span style="display:flex;align-items:center;gap:7px"><span class="avatar small">${esc(iniciais(nomeUsuario(o.RESPONSAVEL_ATUAL)))}</span>${esc(String(nomeUsuario(o.RESPONSAVEL_ATUAL)).split(' ')[0])}</span>${btn('Abrir →', 'open-school', 'text', `data-id="${esc(o.ID_ESCOLA)}"`)}</div></article>`;
+  return `<article class="lead-card" draggable="true" data-id="${esc(o.ID_OPORTUNIDADE)}"><div class="card-head"><div><h3>${escolaBtn(e)}</h3><p class="location">${esc(e.CIDADE || '')}${e.UF ? ' · ' + esc(e.UF) : ''}</p></div>${o.STATUS && o.STATUS !== 'Em andamento' ? badge(o.STATUS, 'orange') : atrasada ? badge('Atrasada', 'red') : ''}</div>${o.ORIGEM_LEAD ? badge(o.ORIGEM_LEAD, '') : ''}<div class="card-info">${c ? `<strong>${esc(c.NOME)}</strong><br>${esc(c.CARGO_FUNCAO || '')}` : '<span class="secondary-text">Sem contato cadastrado</span>'}</div><div class="attempts" aria-label="${n} de ${m} tentativas">${Array.from({ length: m }, (_, i) => `<i class="${i < n ? 'filled' : ''}"></i>`).join('')}</div><div class="card-info">${n}/${m} tentativas · última: ${curta(o.DATA_ULTIMA_TENTATIVA)}<br>Próxima: <strong>${curta(o.PROXIMA_TENTATIVA)}</strong></div><div class="card-bottom"><span style="display:flex;align-items:center;gap:7px"><span class="avatar small">${esc(iniciais(nomeUsuario(o.RESPONSAVEL_ATUAL)))}</span>${esc(String(nomeUsuario(o.RESPONSAVEL_ATUAL)).split(' ')[0])}</span><span class="card-acoes">${eu().gestor ? `<button type="button" class="icon-button card-del" data-action="lixeira-enviar" data-id="${esc(o.ID_ESCOLA)}" title="Apagar card (vai para a Lixeira)" aria-label="Apagar ${esc(e.NOME_ESCOLA)}">🗑</button>` : ''}${btn('Abrir →', 'open-school', 'text', `data-id="${esc(o.ID_ESCOLA)}"`)}</span></div></article>`;
 }
 
 /* ---------- Clientes ---------- */
@@ -743,7 +771,7 @@ function clientesPage() {
     + `<div class="section-grid">${lista.map(e => {
       const { c, ks, ctc, ckC, ckP, ano, ren, ckR, proxR } = dadosCliente(e), p = principal(e.ID_ESCOLA);
       const g = ganhoDe(e.ID_ESCOLA);
-      return `<article class="panel client-card${g ? ' ganho' : ''}"><span class="school-icon">${esc(iniciais(e.NOME_ESCOLA))}</span><h2>${escolaBtn(e)}</h2><p>${e.CODIGO_ELP ? `<strong>ELP ${esc(e.CODIGO_ELP)}</strong> · ` : ''}${esc(e.CIDADE || '')}${e.UF ? ' · ' + esc(e.UF) : ''}${e.FAIXA_ALUNOS ? ' · ' + esc(e.FAIXA_ALUNOS) + ' alunos' : ''}${e.CLIENTE_DESDE ? '<br><small>Cliente desde ' + esc(e.CLIENTE_DESDE) + '</small>' : ''}</p><div class="client-meta">${g ? seloGanho(g) : ''}${e.CODIGO_ELP ? '' : badge('Sem código ELP', 'red')}${badge(c ? c.STATUS : 'Sem contrato')}${c ? badge(`Anos ${c.ANO_LETIVO_INICIAL}–${c.ANO_LETIVO_FINAL}`, 'orange') : ''}${ren ? badge('Renovação: ' + ren.STATUS, ren.STATUS === 'Renovada' ? 'teal' : 'purple') : ''}</div><div class="card-info">Comercial: <strong>${esc(nomeUsuario(ano && ano.RESPONSAVEL_COMERCIAL))}</strong><br>Pedagógico: <strong>${esc(nomeUsuario(ano && ano.RESPONSAVEL_PEDAGOGICO))}</strong><br>Contato: <strong>${esc(p ? p.NOME : '—')}</strong></div>${ckC && ckC.t ? `<small>${ckR ? 'Renovação ' + esc(ren.ANO_LETIVO_DESTINO) : 'Comercial'} <strong>${ckC.f}/${ckC.t}</strong>${ckR && proxR ? ' · próx.: ' + esc(proxR.NOME) : ''}</small><div class="progress"><span style="width:${ckC.pct}%"></span></div>${ckP && ckP.t ? `<small>Pedagógico <strong>${ckP.f}/${ckP.t}</strong></small><div class="progress ped"><span style="width:${ckP.pct}%"></span></div>` : '<small class="secondary-text">Pedagógico: aguardando assinatura</small>'}` : `<small class="secondary-text">${ren ? 'Renovação ' + esc(ren.ANO_LETIVO_DESTINO) + ' sem checklist' : c ? (ctc ? 'Checklist não ativado' : 'Contrato importado · sem renovação aberta') : 'Contrato ainda não registrado'}</small>`}<div class="client-footer"><span>${ks.length} itens · ${dinheiro(valorKits(ks))}</span>${btn('Cliente 360° →', 'open-school', 'text', `data-id="${esc(e.ID_ESCOLA)}"`)}</div></article>`;
+      return `<article class="panel client-card${g ? ' ganho' : ''}"><span class="school-icon">${esc(iniciais(e.NOME_ESCOLA))}</span><h2>${escolaBtn(e)}</h2><p>${e.CODIGO_ELP ? `<strong>ELP ${esc(e.CODIGO_ELP)}</strong> · ` : ''}${esc(e.CIDADE || '')}${e.UF ? ' · ' + esc(e.UF) : ''}${e.FAIXA_ALUNOS ? ' · ' + esc(e.FAIXA_ALUNOS) + ' alunos' : ''}${e.CLIENTE_DESDE ? '<br><small>Cliente desde ' + esc(e.CLIENTE_DESDE) + '</small>' : ''}</p><div class="client-meta">${g ? seloGanho(g) : ''}${e.CODIGO_ELP ? '' : badge('Sem código ELP', 'red')}${badge(c ? c.STATUS : 'Sem contrato')}${c ? badge(`Anos ${c.ANO_LETIVO_INICIAL}–${c.ANO_LETIVO_FINAL}`, 'orange') : ''}${ren ? badge('Renovação: ' + ren.STATUS, ren.STATUS === 'Renovada' ? 'teal' : 'purple') : ''}</div><div class="card-info">Comercial: <strong>${esc(nomeUsuario(ano && ano.RESPONSAVEL_COMERCIAL))}</strong><br>Pedagógico: <strong>${esc(nomeUsuario(ano && ano.RESPONSAVEL_PEDAGOGICO))}</strong><br>Contato: <strong>${esc(p ? p.NOME : '—')}</strong></div>${ckC && ckC.t ? `<small>${ckR ? 'Renovação ' + esc(ren.ANO_LETIVO_DESTINO) : 'Comercial'} <strong>${ckC.f}/${ckC.t}</strong>${ckR && proxR ? ' · próx.: ' + esc(proxR.NOME) : ''}</small><div class="progress"><span style="width:${ckC.pct}%"></span></div>${ckP && ckP.t ? `<small>Pedagógico <strong>${ckP.f}/${ckP.t}</strong></small><div class="progress ped"><span style="width:${ckP.pct}%"></span></div>` : '<small class="secondary-text">Pedagógico: aguardando assinatura</small>'}` : `<small class="secondary-text">${ren ? 'Renovação ' + esc(ren.ANO_LETIVO_DESTINO) + ' sem checklist' : c ? (ctc ? 'Checklist não ativado' : 'Contrato importado · sem renovação aberta') : 'Contrato ainda não registrado'}</small>`}<div class="client-footer"><span>${ks.length} itens · ${dinheiro(valorKits(ks))}</span><span class="card-acoes">${eu().gestor ? `<button type="button" class="icon-button card-del" data-action="lixeira-enviar" data-id="${esc(e.ID_ESCOLA)}" title="Apagar card (vai para a Lixeira)" aria-label="Apagar ${esc(e.NOME_ESCOLA)}">🗑</button>` : ''}${btn('Cliente 360° →', 'open-school', 'text', `data-id="${esc(e.ID_ESCOLA)}"`)}</span></div></article>`;
     }).join('')}</div>${vazioTxt}`;
 }
 /** Ganho da prospecção = escola com contratação registrada no CRM (os clientes importados não têm). */
@@ -808,7 +836,7 @@ function listaClientes(lista) {
   return `<section class="panel table-wrap client-list"><table><thead><tr><th>ESCOLA</th><th>REGIÃO</th><th>CONTRATO</th><th>RESPONSÁVEIS</th><th>COMERCIAL / RENOVAÇÃO</th><th>PEDAGÓGICO</th><th>KITS</th><th></th></tr></thead><tbody>${lista.map(e => {
     const { c, ks, ctc, ckC, ckP, ano, ren, ckR, proxR } = dadosCliente(e);
     const g = ganhoDe(e.ID_ESCOLA);
-    return `<tr class="${g ? 'ganho' : ''}"><td>${escolaBtn(e)}${g ? '<br>' + seloGanho(g) : ''}<br><small class="secondary-text">${e.CODIGO_ELP ? 'ELP ' + esc(e.CODIGO_ELP) + ' · ' : '<span class="danger">sem ELP</span> · '}${esc(e.CIDADE || '')}${e.UF ? '/' + esc(e.UF) : ''}</small></td><td><small>${esc(regiaoDe(e.UF))}</small></td><td>${c ? `${badge(c.STATUS, c.STATUS === 'Vigente' ? 'teal' : 'red')}<br><small class="secondary-text">${esc(c.ANO_LETIVO_INICIAL)}–${esc(c.ANO_LETIVO_FINAL)}</small>` : '<small class="secondary-text">Sem contrato</small>'}</td><td><small>C: ${esc(nomeUsuario(ano && ano.RESPONSAVEL_COMERCIAL))}<br>P: ${esc(nomeUsuario(ano && ano.RESPONSAVEL_PEDAGOGICO))}</small></td><td>${ckR ? `<small class="secondary-text">Renovação ${esc(ren.ANO_LETIVO_DESTINO)}</small>` : ''}${barraMini(ckC, false, ren ? 'sem checklist' : c ? (ctc ? 'não ativado' : 'sem renovação aberta') : '—')}${ckR ? `<small class="secondary-text">${proxR ? 'Próx.: ' + esc(proxR.NOME) : badge('Renovada', 'teal')}</small>` : ''}</td><td>${barraMini(ckP, true, ckC && ckC.t ? 'aguardando assinatura' : '—')}${(() => { const pp = processoCli(e); return pp.atualP ? `<small class="secondary-text">Atual: ${esc(pp.atualP.NOME)}</small>` : ''; })()}</td><td><small>${ks.length} itens<br>${dinheiro(valorKits(ks))}</small></td><td>${btn('Abrir', 'open-school', 'text', `data-id="${esc(e.ID_ESCOLA)}"`)}</td></tr>`;
+    return `<tr class="${g ? 'ganho' : ''}"><td>${escolaBtn(e)}${g ? '<br>' + seloGanho(g) : ''}<br><small class="secondary-text">${e.CODIGO_ELP ? 'ELP ' + esc(e.CODIGO_ELP) + ' · ' : '<span class="danger">sem ELP</span> · '}${esc(e.CIDADE || '')}${e.UF ? '/' + esc(e.UF) : ''}</small></td><td><small>${esc(regiaoDe(e.UF))}</small></td><td>${c ? `${badge(c.STATUS, c.STATUS === 'Vigente' ? 'teal' : 'red')}<br><small class="secondary-text">${esc(c.ANO_LETIVO_INICIAL)}–${esc(c.ANO_LETIVO_FINAL)}</small>` : '<small class="secondary-text">Sem contrato</small>'}</td><td><small>C: ${esc(nomeUsuario(ano && ano.RESPONSAVEL_COMERCIAL))}<br>P: ${esc(nomeUsuario(ano && ano.RESPONSAVEL_PEDAGOGICO))}</small></td><td>${ckR ? `<small class="secondary-text">Renovação ${esc(ren.ANO_LETIVO_DESTINO)}</small>` : ''}${barraMini(ckC, false, ren ? 'sem checklist' : c ? (ctc ? 'não ativado' : 'sem renovação aberta') : '—')}${ckR ? `<small class="secondary-text">${proxR ? 'Próx.: ' + esc(proxR.NOME) : badge('Renovada', 'teal')}</small>` : ''}</td><td>${barraMini(ckP, true, ckC && ckC.t ? 'aguardando assinatura' : '—')}${(() => { const pp = processoCli(e); return pp.atualP ? `<small class="secondary-text">Atual: ${esc(pp.atualP.NOME)}</small>` : ''; })()}</td><td><small>${ks.length} itens<br>${dinheiro(valorKits(ks))}</small></td><td class="acoes-linha">${btn('Abrir', 'open-school', 'text', `data-id="${esc(e.ID_ESCOLA)}"`)}${eu().gestor ? `<button type="button" class="icon-button card-del" data-action="lixeira-enviar" data-id="${esc(e.ID_ESCOLA)}" title="Apagar card (vai para a Lixeira)" aria-label="Apagar ${esc(e.NOME_ESCOLA)}">🗑</button>` : ''}</td></tr>`;
   }).join('')}</tbody></table></section>`;
 }
 
@@ -921,7 +949,7 @@ function corpoFicha(e, o) {
       const c = principal(id), cli = e.STATUS_GERAL === 'Cliente';
       return `<div class="detail-grid"><section class="info-box"><h3>Dados da escola</h3><dl class="info-list">${info('Código ELP', e.CODIGO_ELP ? `<strong>${esc(e.CODIGO_ELP)}</strong>` : (cli ? '<span class="danger">Não informado — clique em Editar escola</span>' : ''))}${cli ? info('Cliente desde', esc(desdeTxt(e))) : ''}${info('Razão social', esc(e.RAZAO_SOCIAL))}${info('CNPJ', esc(e.CNPJ))}${info('Endereço', esc(e.ENDERECO))}${info('Data de abertura', data(e.DATA_ABERTURA))}${info('Faixa de alunos', esc(e.FAIXA_ALUNOS))}${info('Segmentos atuais', esc(e.SEGMENTOS_ATUAIS))}${info('Contato principal', c ? `${esc(c.NOME)}<br>${esc(c.CARGO_FUNCAO || '')}<br>${esc(c.TELEFONE || '')} ${esc(c.EMAIL || '')}` : '')}</dl></section>`
         + (o ? `<section class="info-box"><h3>Oportunidade ${esc(o.ID_OPORTUNIDADE)}</h3><dl class="info-list">${info('Situação', esc(o.STATUS === 'Perdido' ? 'Não avançou' : o.STATUS))}${info('Etapa', esc(o.ETAPA))}${info('Responsável', esc(nomeUsuario(o.RESPONSAVEL_ATUAL)))}${info('Entrada', data(o.DATA_ENTRADA))}${info('Origem do lead', esc(o.ORIGEM_LEAD))}${info('Como conheceu', esc(o.COMO_CONHECEU))}${info('Sistema atual', esc(o.SISTEMA_ATUAL))}${info('Cargo do lead', esc(o.CARGO_LEAD))}${info('Desafio educacional', esc(o.DESAFIO_EDUCACIONAL))}${info('Tentativas', `${Number(o.TENTATIVAS_PRE_REUNIAO || 0)} de ${maxTent()} · próxima ${data(o.PROXIMA_TENTATIVA)}`)}${o.STATUS === 'Perdido' ? info('Motivo', esc(o.MOTIVO_PERDA) + ' · ' + data(o.DATA_ENCERRAMENTO)) : ''}</dl></section>` : `<section class="info-box"><h3>Oportunidade</h3>${vazio('Sem oportunidade registrada.')}</section>`)
-        + `</div>${o && o.OBSERVACOES ? `<div class="detail-note">${esc(o.OBSERVACOES)}</div>` : ''}<div class="inline-actions">${btn('Editar escola', 'edit-school', 'secondary')}${o ? btn('Editar oportunidade', 'edit-opp', 'secondary') : ''}${o && !encerrada(o) ? btn('Mover etapa', 'move-stage', 'secondary') + btn('Registrar tentativa', 'new-attempt', 'secondary') + btn('Não avançou', 'close-opp', 'secondary danger') : ''}${o && o.STATUS === 'Perdido' ? btn('Reabrir oportunidade', 'reopen', 'secondary') : ''}${btn('Criar tarefa', 'new-task', 'secondary', `data-id="${esc(id)}"`)}</div>`;
+        + `</div>${o && o.OBSERVACOES ? `<div class="detail-note">${esc(o.OBSERVACOES)}</div>` : ''}<div class="inline-actions">${btn('Editar escola', 'edit-school', 'secondary')}${o ? btn('Editar oportunidade', 'edit-opp', 'secondary') : ''}${o && !encerrada(o) ? btn('Mover etapa', 'move-stage', 'secondary') + btn('Registrar tentativa', 'new-attempt', 'secondary') + btn('Não avançou', 'close-opp', 'secondary danger') : ''}${o && o.STATUS === 'Perdido' ? btn('Reabrir oportunidade', 'reopen', 'secondary') : ''}${btn('Criar tarefa', 'new-task', 'secondary', `data-id="${esc(id)}"`)}${eu().gestor ? btn('🗑 Apagar escola', 'lixeira-enviar', 'secondary danger', `data-id="${esc(id)}"`) : ''}</div>`;
     }
     case 1: {
       const cs = contatosDe(id);
@@ -1161,8 +1189,8 @@ async function configurar(d, msg) {
 }
 function configPage() {
   if (!eu().gestor) return heading('ACESSO RESTRITO', 'Configurações', 'Esta área é exclusiva para gestores.');
-  const abas = [['parametros', 'Parâmetros'], ['listas', 'Listas'], ['etapas', 'Etapas dos checklists'], ['depara', 'De-para de segmentos']];
-  const corpo = cfgAba === 'listas' ? cfgListas() : cfgAba === 'etapas' ? cfgEtapas() : cfgAba === 'depara' ? cfgDepara() : cfgParametros();
+  const abas = [['parametros', 'Parâmetros'], ['listas', 'Listas'], ['etapas', 'Etapas dos checklists'], ['depara', 'De-para de segmentos'], ['lixeira', `🗑 Lixeira (${naLixeira().length})`]];
+  const corpo = cfgAba === 'listas' ? cfgListas() : cfgAba === 'etapas' ? cfgEtapas() : cfgAba === 'depara' ? cfgDepara() : cfgAba === 'lixeira' ? cfgLixeira() : cfgParametros();
   return heading('O QUE SUSTENTA O SISTEMA', 'Configurações', 'Ajuste parâmetros, listas e etapas sem mexer na planilha. Visível só para gestores.', btn('⬆ Importar escolas', 'import', 'secondary') + btn('↻ Atualizar dados', 'refresh', 'secondary'))
     + `<div class="toolbar"><div class="segmented" role="tablist" aria-label="Seções das configurações">${abas.map(([k, l]) => `<button role="tab" data-action="cfg-aba" data-ref="${k}" class="${cfgAba === k ? 'active' : ''}" aria-selected="${cfgAba === k}">${l}</button>`).join('')}</div><span class="spacer"></span><small class="secondary-text">Planilha: <strong>${esc(D.planilha)}</strong> · servidor ${esc(D.versao)}</small></div>` + corpo;
 }
@@ -1188,6 +1216,40 @@ function cfgEtapas() {
 function cfgDepara() {
   const ls = T('DEPARA_SEGMENTOS').slice().sort((a, b) => String(a.CATEGORIA_RELATORIO).localeCompare(b.CATEGORIA_RELATORIO, 'pt-BR', { numeric: true }));
   return `<section class="panel"><div class="panel-head"><h2>Categoria do relatório → segmento do CRM</h2>${btn('+ Nova categoria', 'cfg-depara-novo')}</div><div class="table-wrap"><table><thead><tr><th>CATEGORIA (RELATÓRIO)</th><th>SUBGRUPO</th><th>GRUPO</th><th>SEGMENTO NO CRM</th><th></th></tr></thead><tbody>${ls.map(d => `<tr class="${sim(d.ATIVO) ? '' : 'inactive'}"><td><strong>${esc(d.CATEGORIA_RELATORIO)}</strong>${sim(d.ATIVO) ? '' : ' ' + badge('Inativo', 'red')}</td><td>${esc(d.SUBGRUPO) || '—'}</td><td>${esc(d.GRUPO) || '—'}</td><td>${badge(d.SEGMENTO || '—', 'teal')}</td><td><button class="icon-button" data-action="cfg-depara" data-ref="${esc(d.ID_DEPARA)}" aria-label="Editar ${esc(d.CATEGORIA_RELATORIO)}">✎</button></td></tr>`).join('') || `<tr><td colspan="5">${vazio('Nenhuma categoria cadastrada.')}</td></tr>`}</tbody></table></div><p class="visual-tip">Usado na importação de kits pelo relatório de contrato: a coluna Categoria do relatório vira o segmento do CRM. Se surgir uma categoria nova no relatório, cadastre aqui antes de importar.</p></section>`;
+}
+/* ---------- Lixeira (v1.15, só gestor) ---------- */
+function formLixeira(id) {
+  const e = escola(id); if (!e || !eu().gestor) return;
+  const onde = e.STATUS_GERAL === 'Cliente' ? 'de Clientes' : 'da Prospecção';
+  showForm('Apagar card', `<p class="subtitle"><strong>${esc(e.NOME_ESCOLA)}</strong>${e.CIDADE ? ' · ' + esc(e.CIDADE) + (e.UF ? '/' + esc(e.UF) : '') : ''}${e.CODIGO_ELP ? ' · ELP ' + esc(e.CODIGO_ELP) : ''}</p><div class="notice">A escola sai ${onde} e de todas as telas (tarefas, agenda, relatórios), junto com contatos, oportunidade, checklists e contratos dela.<br>Nada é apagado de vez agora: tudo fica na <strong>Lixeira</strong> (Configurações), de onde um gestor pode restaurar ou apagar definitivamente.</div>`,
+    async () => {
+      await gravar('lixeira', { ID_ESCOLA: id, operacao: 'excluir' });
+      if (detail.open && detailId === id) detail.close();
+      toastAcao(`${e.NOME_ESCOLA} foi para a Lixeira.`, 'Desfazer', () => restaurarEscola(id), false);
+    }, 'Mandar para a Lixeira');
+  const s = $('active-form').querySelector('[type=submit]'); s.classList.add('danger');
+}
+async function restaurarEscola(id) {
+  const e = naLixeira().find(x => x.ID_ESCOLA === id);
+  try { await gravar('lixeira', { ID_ESCOLA: id, operacao: 'restaurar' }, `${e ? e.NOME_ESCOLA : 'Escola'} restaurada.`); }
+  catch (err) { toast(err.message, true); }
+}
+function formApagarDeVez(id) {
+  const e = naLixeira().find(x => x.ID_ESCOLA === id); if (!e) return;
+  const n = ligadosNaLixeira(id);
+  showForm('Apagar de vez', `<p class="subtitle"><strong>${esc(e.NOME_ESCOLA)}</strong></p><div class="notice">Apaga da planilha a escola e ${n} registro(s) ligados a ela (contatos, oportunidade, atividades, tarefas, reuniões, checklists, contratos, kits). <strong>Não dá para desfazer.</strong> O histórico de alterações guarda só o registro de que ela foi apagada.</div><label class="check-field"><input type="checkbox" name="confirmo" required> Entendo que não dá para desfazer</label>`,
+    async () => {
+      const r = await gravar('lixeira', { ID_ESCOLA: id, operacao: 'apagar' });
+      Object.keys(D.excluidas || {}).forEach(k => { D.excluidas[k] = D.excluidas[k].filter(x => x.ID_ESCOLA !== id); });
+      Object.keys(D.tabelas).forEach(k => { if (Array.isArray(D.tabelas[k]) && k !== 'HISTORICO') D.tabelas[k] = D.tabelas[k].filter(x => x.ID_ESCOLA !== id); });
+      redesenhar(); guardarCopiaLocal();
+      toast(`${e.NOME_ESCOLA} apagada de vez (${(r && r.total) || 0} registro(s)).`);
+    }, 'Apagar de vez');
+  $('active-form').querySelector('[type=submit]').classList.add('danger');
+}
+function cfgLixeira() {
+  const ls = naLixeira();
+  return `<section class="panel"><div class="panel-head"><h2>Lixeira</h2><small>${ls.length} escola(s)</small></div>${ls.length ? `<div class="table-wrap"><table><thead><tr><th>ESCOLA</th><th>ERA</th><th>APAGADA EM</th><th>POR</th><th>REGISTROS LIGADOS</th><th></th></tr></thead><tbody>${ls.map(e => `<tr><td><strong>${esc(e.NOME_ESCOLA)}</strong><small class="secondary-text">${e.CODIGO_ELP ? 'ELP ' + esc(e.CODIGO_ELP) + ' · ' : ''}${esc(e.CIDADE || '')}${e.UF ? '/' + esc(e.UF) : ''}</small></td><td>${badge(e.STATUS_GERAL === 'Cliente' ? 'Cliente' : 'Prospecção', e.STATUS_GERAL === 'Cliente' ? 'teal' : 'orange')}</td><td>${dataHora(e.EXCLUIDO_EM)}</td><td>${esc(nomeUsuario(e.EXCLUIDO_POR))}</td><td>${ligadosNaLixeira(e.ID_ESCOLA)}</td><td class="acoes-linha">${btn('Restaurar', 'lixeira-restaurar', 'secondary', `data-id="${esc(e.ID_ESCOLA)}"`)}${btn('Apagar de vez', 'lixeira-apagar', 'secondary danger', `data-id="${esc(e.ID_ESCOLA)}"`)}</td></tr>`).join('')}</tbody></table></div>` : vazio('A Lixeira está vazia. Quando um gestor apaga um card na Prospecção ou em Clientes, a escola vem para cá.')}</section><p class="visual-tip">Restaurar devolve a escola com tudo o que tinha (contatos, oportunidade, checklists, contratos). “Apagar de vez” remove da planilha e não pode ser desfeito.</p>`;
 }
 function formDepara(d) {
   showForm(d ? 'Editar categoria' : 'Nova categoria', campo('Categoria (como vem no relatório)', 'CATEGORIA_RELATORIO', 'text', d ? d.CATEGORIA_RELATORIO : '', true, 'style="text-transform:uppercase" placeholder="Ex.: INFANTIL 3"')
@@ -1605,6 +1667,9 @@ addEventListener('click', async e => {
       case 'view-kanban': view = 'kanban'; render(); break;
       case 'view-list': view = 'list'; render(); break;
       case 'cli-view': viewClientes = ref; render(); break;
+      case 'lixeira-enviar': formLixeira(b.dataset.id); break;
+      case 'lixeira-restaurar': await restaurarEscola(b.dataset.id); break;
+      case 'lixeira-apagar': formApagarDeVez(b.dataset.id); break;
       case 'ganhos-ver': if (ref === 'limpar') origemFiltro = ''; else { origemFiltro = 'GANHO_AND'; viewClientes = ref; if (ref === 'kcom') kanbanComProc = 'COM'; } render(); break;
       case 'kcom-proc': kanbanComProc = ref; render(); break;
       case 'rel-ver': { const [tipo, val] = [ref.slice(0, 1), ref.slice(2)]; etapaComFiltro = tipo === 'C' ? (val === 'SEM' ? 'SEM' : val) : ''; etapaPedFiltro = tipo === 'P' ? val : ''; const r0 = regiao; setPage('clientes'); regiao = r0; etapaComFiltro = tipo === 'C' ? (val === 'SEM' ? 'SEM' : val) : ''; etapaPedFiltro = tipo === 'P' ? val : ''; viewClientes = 'lista'; render(); break; }
