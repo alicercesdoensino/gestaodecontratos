@@ -214,6 +214,21 @@ th.col-sel,td.col-sel{width:34px;padding-right:0}
 .retorno-ref{font-size:11px;color:var(--teal-dark);margin:4px 0 2px}
 .timeline-item.retorno{border-left-color:#bfe3dc}
 .timeline-item.retorno:before{background:#fff;border:2px solid var(--teal)}
+/* v1.22 — etapa clicável e ganho/perda no topo da ficha */
+.head-acoes{display:flex;align-items:flex-start;gap:8px;flex-shrink:0}
+.head-acoes .button{padding:9px 14px;font-size:12px;white-space:nowrap}
+.head-acoes .ganho-btn{background:#1f5f58}
+.head-acoes .ganho-btn:hover{background:#174c46}
+.head-acoes .perda-btn{background:#e6f6f9;border-color:#c7e8ee;color:#1f5f58}
+.etapa-menu{position:relative;display:inline-block}
+.etapa-menu>summary{list-style:none;cursor:pointer;user-select:none}
+.etapa-menu>summary::-webkit-details-marker{display:none}
+.etapa-menu>summary:hover{filter:brightness(.96);outline:1px solid #e9c9a8}
+.etapa-opcoes{position:absolute;left:0;top:calc(100% + 6px);z-index:30;min-width:230px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px #172d3926;padding:6px;display:grid;gap:2px}
+.etapa-opcoes button{background:none;text-align:left;padding:9px 11px;border-radius:7px;font-size:12px;color:var(--ink)}
+.etapa-opcoes button:hover{background:var(--soft)}
+.etapa-opcoes button.atual{color:var(--teal-dark);font-weight:700}
+@media (max-width:760px){.head-acoes .button{padding:7px 9px;font-size:11px}}
 </style>
   <script>
     /* ===== ENDEREÇO DA API (link /exec do Apps Script) ===== */
@@ -246,7 +261,7 @@ th.col-sel,td.col-sel{width:34px;padding-right:0}
   <div class="shell">
     <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola ou código ELP…" aria-label="Buscar escola em todo o CRM"></label><button class="sync" data-action="refresh" id="sync-status" title="Atualizar dados da planilha" style="background:none">Tudo salvo</button><span class="date-label" id="date-label"></span><span class="avatar small" id="top-avatar"></span></div></header>
     <main id="main" tabindex="-1"></main>
-    <footer>ALICERCES · CRM <span>Versão da tela 1.21 · 15/10/2026</span></footer>
+    <footer>ALICERCES · CRM <span>Versão da tela 1.22 · 15/10/2026</span></footer>
   </div>
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-title"><div id="form-content"></div></dialog>
@@ -1092,6 +1107,7 @@ function renderDetail(forcar) {
     $('atv-linha').innerHTML = linhaDoTempo(e);
     const bar = detail.querySelector('.atv-botoes'); if (bar) bar.innerHTML = botoesAtv(e, oo);
     if ($('atv-pre') && oo) $('atv-pre').innerHTML = tentativasHtml(oo);
+    const rs = detail.querySelector('.detail-summary'); if (rs) rs.innerHTML = resumoFicha(e, oo, e.STATUS_GERAL === 'Cliente');
     return;
   }
   if (detailTab === 3) { detailTab = 2; filtroHist = 'reunioes'; } else if (detailTab === 7) { detailTab = 2; filtroHist = 'tarefas'; }
@@ -1099,10 +1115,22 @@ function renderDetail(forcar) {
   const corpoAntes = detail.querySelector('.dialog-body'), rolagem = { corpo: corpoAntes ? corpoAntes.scrollTop : 0, dialogo: detail.scrollTop, aba: detailTab, id: detailId };
   requestAnimationFrame(() => { if (rolagem.aba !== detailTab || rolagem.id !== detailId) return; const c = detail.querySelector('.dialog-body'); if (c) c.scrollTop = rolagem.corpo; detail.scrollTop = rolagem.dialogo; });
   const o = oportunidadeDe(e.ID_ESCOLA), cli = e.STATUS_GERAL === 'Cliente';
-  $('detail-content').innerHTML = `<div class="dialog-head"><div><div class="eyebrow">${cli ? 'CLIENTE 360°' : 'FICHA DA ESCOLA'} · ${esc(e.ID_ESCOLA)}${e.CODIGO_ELP ? ' · ELP ' + esc(e.CODIGO_ELP) : ''}</div><h2 id="detail-title">${esc(e.NOME_ESCOLA)}</h2><p>${esc(e.CIDADE || '')}${e.UF ? ' · ' + esc(e.UF) : ''}${o ? ' · ' + esc(nomeUsuario(o.RESPONSAVEL_ATUAL)) : ''}${cli && e.CLIENTE_DESDE ? ' · ' + esc(desdeTxt(e)) : ''}</p><div class="detail-summary">${badge(e.STATUS_GERAL || '—', e.STATUS_GERAL === 'Não avançou' ? 'red' : 'teal')}${cli && !e.CODIGO_ELP ? (elpExigido(e.ID_ESCOLA) ? badge('Sem código ELP', 'red') : badge('Código ELP pendente', 'orange')) : ''}${o && !encerrada(o) ? badge(o.ETAPA || '—', 'orange') : ''}${e.FAIXA_ALUNOS ? badge(e.FAIXA_ALUNOS + ' alunos', '') : ''}${e.SEGMENTOS_ATUAIS ? badge(e.SEGMENTOS_ATUAIS, '') : ''}</div></div><button class="icon-button" data-action="close-detail" aria-label="Fechar ficha">×</button></div><div class="detail-tabs" role="tablist" aria-label="Seções da ficha">${TABS.map((t, i) => TABS_OCULTAS.includes(i) ? '' : `<button role="tab" id="tab-${i}" aria-selected="${detailTab === i}" aria-controls="detail-panel" tabindex="${detailTab === i ? 0 : -1}" data-action="detail-tab" data-tab="${i}" class="${detailTab === i ? 'active' : ''}">${t}</button>`).join('')}</div><div class="dialog-body" role="tabpanel" id="detail-panel" aria-labelledby="tab-${detailTab}">${corpoFicha(e, o)}</div>`;
+  $('detail-content').innerHTML = `<div class="dialog-head"><div><div class="eyebrow">${cli ? 'CLIENTE 360°' : 'FICHA DA ESCOLA'} · ${esc(e.ID_ESCOLA)}${e.CODIGO_ELP ? ' · ELP ' + esc(e.CODIGO_ELP) : ''}</div><h2 id="detail-title">${esc(e.NOME_ESCOLA)}</h2><p>${esc(e.CIDADE || '')}${e.UF ? ' · ' + esc(e.UF) : ''}${o ? ' · ' + esc(nomeUsuario(o.RESPONSAVEL_ATUAL)) : ''}${cli && e.CLIENTE_DESDE ? ' · ' + esc(desdeTxt(e)) : ''}</p><div class="detail-summary">${resumoFicha(e, o, cli)}</div></div><div class="head-acoes">${o && !encerrada(o) ? `<button type="button" class="button secondary perda-btn" data-action="close-opp" title="Não avançou (marcar perda)">👎 Marcar perda</button><button type="button" class="button ganho-btn" data-action="new-contract" title="Registrar ganho">👍 Marcar ganho</button>` : ''}<button class="icon-button" data-action="close-detail" aria-label="Fechar ficha">×</button></div></div><div class="detail-tabs" role="tablist" aria-label="Seções da ficha">${TABS.map((t, i) => TABS_OCULTAS.includes(i) ? '' : `<button role="tab" id="tab-${i}" aria-selected="${detailTab === i}" aria-controls="detail-panel" tabindex="${detailTab === i ? 0 : -1}" data-action="detail-tab" data-tab="${i}" class="${detailTab === i ? 'active' : ''}">${t}</button>`).join('')}</div><div class="dialog-body" role="tabpanel" id="detail-panel" aria-labelledby="tab-${detailTab}">${corpoFicha(e, o)}</div>`;
   $('detail-content').dataset.escola = detailId;
   ligarFormAtv(e, o, guardado);
 }
+const resumoFicha = (e, o, cli) => `${badge(e.STATUS_GERAL || '—', e.STATUS_GERAL === 'Não avançou' ? 'red' : 'teal')}${cli && !e.CODIGO_ELP ? (elpExigido(e.ID_ESCOLA) ? badge('Sem código ELP', 'red') : badge('Código ELP pendente', 'orange')) : ''}${o && !encerrada(o) ? menuEtapa(o) : ''}${e.FAIXA_ALUNOS ? badge(e.FAIXA_ALUNOS + ' alunos', '') : ''}${e.SEGMENTOS_ATUAIS ? badge(e.SEGMENTOS_ATUAIS, '') : ''}`;
+/* v1.22: etapa clicável no topo da ficha (abre as etapas do funil e move na hora) */
+function menuEtapa(o) {
+  return `<details class="etapa-menu"><summary class="pill orange" title="Clique para mudar a etapa">${esc(o.ETAPA || '—')} ▾</summary><div class="etapa-opcoes" role="menu">${L('ETAPA_PROSPECCAO').map(et => `<button type="button" role="menuitemradio" aria-checked="${et === o.ETAPA}" class="${et === o.ETAPA ? 'atual' : ''}" data-action="etapa-escolher" data-ref="${esc(et)}">${et === o.ETAPA ? '● ' : ''}${esc(et)}</button>`).join('')}</div></details>`;
+}
+function moverEtapaRapido(o, etapa) {
+  if (!o || !etapa || o.ETAPA === etapa) return;
+  const e = escola(o.ID_ESCOLA);
+  emSegundoPlano('etapa de ' + (e ? e.NOME_ESCOLA : 'escola'), () => { const antes = o.ETAPA; o.ETAPA = etapa; return () => { o.ETAPA = antes; }; },
+    'moverEtapa', { ID_OPORTUNIDADE: o.ID_OPORTUNIDADE, ETAPA: etapa }, 'Etapa atualizada: ' + etapa);
+}
+document.addEventListener('click', ev => { document.querySelectorAll('details.etapa-menu[open]').forEach(d => { if (!d.contains(ev.target)) d.removeAttribute('open'); }); });
 const info = (rot, val) => `<div><dt>${rot}</dt><dd>${val || '—'}</dd></div>`;
 function desdeTxt(e) { const a = Number(e.CLIENTE_DESDE); if (!a) return ''; const n = new Date().getFullYear() - a + 1; return `Cliente desde ${a}` + (n > 1 ? ` · ${n}º ano de parceria` : ''); }
 function corpoFicha(e, o) {
@@ -2009,6 +2037,7 @@ addEventListener('click', async e => {
       case 'new-attempt': formTentativa(o); break;
       case 'new-activity': formAtividade(esc_); break;
       case 'close-opp': formEncerrar(o); break;
+      case 'etapa-escolher': { const d = b.closest('details'); if (d) d.removeAttribute('open'); moverEtapaRapido(o, ref); break; }
       case 'reopen': if (confirmar(b, 'Clique de novo para reabrir')) await gravar('reabrirOportunidade', { ID_OPORTUNIDADE: o.ID_OPORTUNIDADE }, 'Oportunidade reaberta.'); break;
       case 'new-contact': formContato({}, esc_.ID_ESCOLA); break;
       case 'edit-contact': formContato(achar('CONTATOS', 'ID_CONTATO', ref)); break;
@@ -2115,11 +2144,7 @@ addEventListener('drop', async e => {
   const col = e.target.closest('.kanban-column'); if (!col) return;
   e.preventDefault(); col.classList.remove('drop-active');
   const id = dragId || e.dataTransfer.getData('text/plain'), o = T('OPORTUNIDADES').find(x => x.ID_OPORTUNIDADE === id);
-  if (o && o.ETAPA !== col.dataset.stage) {
-    const etapa = col.dataset.stage, e = escola(o.ID_ESCOLA);
-    emSegundoPlano('etapa de ' + (e ? e.NOME_ESCOLA : 'escola'), () => { const antes = o.ETAPA; o.ETAPA = etapa; return () => { o.ETAPA = antes; }; },
-      'moverEtapa', { ID_OPORTUNIDADE: id, ETAPA: etapa }, 'Etapa atualizada: ' + etapa);
-  }
+  if (o && o.ETAPA !== col.dataset.stage) moverEtapaRapido(o, col.dataset.stage);
 });
 addEventListener('dragend', () => { dragId = null; document.querySelectorAll('.drop-active').forEach(c => c.classList.remove('drop-active')); });
 addEventListener('hashchange', () => { const p = location.hash.slice(1); if (D && p !== page) setPage(p); });
