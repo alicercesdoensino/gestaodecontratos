@@ -207,6 +207,9 @@ th.col-sel,td.col-sel{width:34px;padding-right:0}
 .atv-form h3{margin-bottom:14px;color:var(--teal-dark)}
 .atv-form .form-actions{margin-top:8px}
 @media (max-width:760px){.atv-botoes{grid-template-columns:1fr 1fr}}
+/* v1.20 — excluir registro */
+.button.text.danger-text{color:#a53d35}
+.timeline-item .button.text{margin-right:12px}
 </style>
   <script>
     /* ===== ENDEREÇO DA API (link /exec do Apps Script) ===== */
@@ -239,7 +242,7 @@ th.col-sel,td.col-sel{width:34px;padding-right:0}
   <div class="shell">
     <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola ou código ELP…" aria-label="Buscar escola em todo o CRM"></label><button class="sync" data-action="refresh" id="sync-status" title="Atualizar dados da planilha" style="background:none">Tudo salvo</button><span class="date-label" id="date-label"></span><span class="avatar small" id="top-avatar"></span></div></header>
     <main id="main" tabindex="-1"></main>
-    <footer>ALICERCES · CRM <span>Versão da tela 1.19.1 · 15/10/2026</span></footer>
+    <footer>ALICERCES · CRM <span>Versão da tela 1.20 · 15/10/2026</span></footer>
   </div>
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-title"><div id="form-content"></div></dialog>
@@ -447,8 +450,13 @@ async function processarFila() {
     } catch (err) {
       if (err.codigo === 'SESSAO') { fila.length = 0; break; }
       try { item.desfazer(); } catch {}
+      if (err.codigo === 'TENTATIVA_RECENTE') { // tela estava desatualizada: nada foi gravado; "registrar mesmo assim" reenvia confirmando
+        item.dados = { ...item.dados, forcar: true }; falhas.push(item);
+        toastAcao(err.message, 'Registrar mesmo assim', tentarDeNovo);
+      } else {
       falhas.push(item);
       toastAcao(`Erro ao salvar (${item.descricao}): ${err.message}`, 'Tentar de novo', tentarDeNovo);
+      }
     }
     fila.shift(); atualizarSync(); redesenhar();
   }
@@ -1042,7 +1050,7 @@ function tentativasHtml(o) {
     const i = k + 1;
     if (i <= n) {
       const a = i <= semReg ? null : tent[i - semReg - 1];
-      return `<li class="ck-item feito"><span class="ck-box" aria-hidden="true">✓</span><div class="ck-text"><strong>Tentativa ${i}${a && a.CANAL ? ' · ' + esc(a.CANAL) : ''}</strong><small>${a ? `${dataHora(a.DATA_HORA)} · ${esc(nomeUsuario(a.USUARIO))}${a.RESULTADO ? ' · ' + esc(a.RESULTADO) : ''}` : 'Registrada antes (importação)'}</small></div>${a && eu().gestor && !String(a.ID_ATIVIDADE).startsWith('tmp') ? btn('✎', 'edit-tentativa', 'text', `data-ref="${esc(a.ID_ATIVIDADE)}" title="Editar tentativa (gestor)"`) : ''}</li>`;
+      return `<li class="ck-item feito"><span class="ck-box" aria-hidden="true">✓</span><div class="ck-text"><strong>Tentativa ${i}${a && a.CANAL ? ' · ' + esc(a.CANAL) : ''}</strong><small>${a ? `${dataHora(a.DATA_HORA)} · ${esc(nomeUsuario(a.USUARIO))}${a.RESULTADO ? ' · ' + esc(a.RESULTADO) : ''}` : 'Registrada antes (importação)'}</small></div>${a && eu().gestor && !String(a.ID_ATIVIDADE).startsWith('tmp') ? btn('✎', 'edit-tentativa', 'text', `data-ref="${esc(a.ID_ATIVIDADE)}" title="Editar tentativa (gestor)"`) + btn('🗑', 'excluir-atividade', 'text danger-text', `data-ref="${esc(a.ID_ATIVIDADE)}" title="Excluir tentativa (gestor)"`) : ''}</li>`;
     }
     if (i === n + 1 && aberta) {
       const atras = o.PROXIMA_TENTATIVA && dia(o.PROXIMA_TENTATIVA) < h;
@@ -1053,8 +1061,13 @@ function tentativasHtml(o) {
   const fim = aberta && n >= m ? `<div class="notice" style="margin-top:12px">As ${m} tentativas foram feitas. Registre a reunião (botão “Registrar reunião”) ou registre “Não avançou”.</div>` : '';
   return `<section class="info-box"><h3>Tentativas de contato · ${n} de ${m}</h3><p class="secondary-text">Ao marcar uma tentativa, a próxima fica pendente para daqui a ${cfg('INTERVALO_TENTATIVAS_PRE_DIAS', 7)} dias.</p><ul class="ck">${linhas.join('')}</ul>${fim}</section>`;
 }
-function registrarTentativaRapida(o, canal) {
+function registrarTentativaRapida(o, canal, forcar) {
   const n = Number(o.TENTATIVAS_PRE_REUNIAO || 0); if (n >= maxTent()) return;
+  const agoraMin = Date.now(), recente = !forcar && T('ATIVIDADES').find(a => a.ID_OPORTUNIDADE === o.ID_OPORTUNIDADE && a.TIPO_ATIVIDADE === 'Tentativa de contato' && a.CANAL === canal && Math.abs(agoraMin - new Date(String(a.DATA_HORA).slice(0, 16)).getTime()) <= 10 * 60000);
+  if (recente) {
+    showForm('Registrar outra tentativa?', `<div class="notice">Já existe uma tentativa por <strong>${esc(canal)}</strong> registrada às <strong>${esc(hora(recente.DATA_HORA))}</strong> por ${esc(nomeUsuario(recente.USUARIO))}.</div><p class="visual-tip">Se a tela parecia não ter salvo, provavelmente salvou: confira a linha do tempo antes de registrar de novo.</p>`, () => { registrarTentativaRapida(o, canal, true); }, 'Registrar mesmo assim');
+    return;
+  }
   const tmp = { ID_ATIVIDADE: 'tmp-' + Date.now(), ID_ESCOLA: o.ID_ESCOLA, ID_OPORTUNIDADE: o.ID_OPORTUNIDADE, TIPO_ATIVIDADE: 'Tentativa de contato', CANAL: canal, DATA_HORA: agora(), USUARIO: eu().id, RESULTADO: '', DESCRICAO: '' };
   emSegundoPlano('tentativa ' + (n + 1), () => {
     const antes = { TENTATIVAS_PRE_REUNIAO: o.TENTATIVAS_PRE_REUNIAO, DATA_ULTIMA_TENTATIVA: o.DATA_ULTIMA_TENTATIVA, PROXIMA_TENTATIVA: o.PROXIMA_TENTATIVA };
@@ -1062,7 +1075,7 @@ function registrarTentativaRapida(o, canal) {
     D.tabelas.ATIVIDADES.push(tmp);
     const tirarTmp = () => { const i = D.tabelas.ATIVIDADES.indexOf(tmp); if (i >= 0) D.tabelas.ATIVIDADES.splice(i, 1); };
     return { desfazer: () => { Object.assign(o, antes); tirarTmp(); }, limpar: tirarTmp };
-  }, 'registrarTentativa', { ID_OPORTUNIDADE: o.ID_OPORTUNIDADE, CANAL: canal, DATA_HORA: tmp.DATA_HORA }, `Tentativa ${n + 1} registrada (${canal}).`);
+  }, 'registrarTentativa', { ID_OPORTUNIDADE: o.ID_OPORTUNIDADE, CANAL: canal, DATA_HORA: tmp.DATA_HORA, forcar: !!forcar }, `Tentativa ${n + 1} registrada (${canal}).`);
 }
 
 /* ---------- Ficha da escola ---------- */
@@ -1216,7 +1229,8 @@ function linhaDoTempo(e) {
 function itemAtividade(a) {
   const t = a.ID_TAREFA && T('TAREFAS').find(x => x.ID_TAREFA === a.ID_TAREFA);
   const texto = [a.RESULTADO && 'Resultado: ' + a.RESULTADO, a.DESCRICAO, a.PROXIMA_ACAO && `Próxima ação: ${a.PROXIMA_ACAO} (${data(a.PRAZO_PROXIMA_ACAO)})`].filter(Boolean).join('\n');
-  const editar = a.TIPO_ATIVIDADE === 'Tentativa de contato' && eu().gestor && !String(a.ID_ATIVIDADE).startsWith('tmp') ? btn('✎ Editar', 'edit-tentativa', 'text', `data-ref="${esc(a.ID_ATIVIDADE)}"`) : '';
+  const editar = (a.TIPO_ATIVIDADE === 'Tentativa de contato' && eu().gestor && !String(a.ID_ATIVIDADE).startsWith('tmp') ? btn('✎ Editar', 'edit-tentativa', 'text', `data-ref="${esc(a.ID_ATIVIDADE)}"`) : '')
+    + (podeExcluirAtv(a) ? btn('🗑 Excluir', 'excluir-atividade', 'text danger-text', `data-ref="${esc(a.ID_ATIVIDADE)}"`) : '');
   return `<div class="timeline-item hist-${GRUPO_HIST(a)}"><small>${dataHora(a.DATA_HORA)} · ${esc(nomeUsuario(a.USUARIO))}<span class="activity-type">${esc(a.TIPO_ATIVIDADE + (a.CANAL ? ' · ' + a.CANAL : ''))}</span></small><p style="white-space:pre-line">${esc(texto)}</p>${t ? `<div class="hist-tarefa">${btn('Abrir tarefa', 'open-task', 'text', `data-ref="${esc(t.ID_TAREFA)}"`)} ${badge(t.STATUS, t.STATUS === 'Concluída' ? 'teal' : t.STATUS === 'Cancelada' ? 'red' : tarefaAtrasada(t) ? 'red' : 'orange')} <small class="secondary-text">${esc(nomeUsuario(t.RESPONSAVEL))}${t.PRAZO ? ' · prazo ' + data(t.PRAZO) : ''}</small></div>` : ''}${editar}</div>`;
 }
 function itemReuniao(r) {
@@ -1552,12 +1566,32 @@ function specTentativa(o) {
   const n = Number(o.TENTATIVAS_PRE_REUNIAO || 0), m = maxTent();
   if (n >= m) return null;
   return { titulo: `Tentativa ${n + 1} de ${m}`, rotulo: 'Registrar tentativa', corpo: linha(lista('Canal', 'CANAL', opts(L('CANAL'), '', 'Selecione'), true), campo('Data e hora', 'DATA_HORA', 'datetime-local', agora(), true)) + campo('Resultado', 'RESULTADO', 'text', '', false, 'placeholder="Ex.: Sem resposta, Pediu retorno, Agendou reunião"') + texto('Descrição', 'DESCRICAO') + campo(`Próxima tentativa (em branco = daqui a ${cfg('INTERVALO_TENTATIVAS_PRE_DIAS', 7)} dias)`, 'PROXIMA_TENTATIVA', 'date', ''),
-    onSubmit: v => gravar('registrarTentativa', { ID_OPORTUNIDADE: o.ID_OPORTUNIDADE, ...v }, 'Tentativa registrada.') };
+    onSubmit: async (v, f) => {
+      try { return await gravar('registrarTentativa', { ID_OPORTUNIDADE: o.ID_OPORTUNIDADE, ...v, forcar: f.dataset.forcar === '1' }, 'Tentativa registrada.'); }
+      catch (err) { if (err.codigo === 'TENTATIVA_RECENTE') { f.dataset.forcar = '1'; throw new Error(err.message + ' Se for mesmo outra tentativa, clique em “Registrar tentativa” de novo.'); } throw err; }
+    } };
 }
 function formTentativa(o) {
   const sp = specTentativa(o);
   if (!sp) { toast(`Limite de ${maxTent()} tentativas atingido. Agende a reunião ou registre “Não avançou”.`); return; }
   abrirSpec(sp);
+}
+/* v1.20: excluir tentativa/anotação lançada por engano (tentativa: só gestor; anotação: quem registrou ou gestor). */
+const TIPOS_SISTEMA_ATV = /^(Checklist|Renovação|Pedagógico liberado|Contratação|Mudança de etapa|Reabertura|Encerramento|Tarefa|Automação)/;
+function podeExcluirAtv(a) {
+  if (!a || String(a.ID_ATIVIDADE).startsWith('tmp') || String(a.ID_ATIVIDADE).startsWith('TMP') || a.ID_TAREFA || TIPOS_SISTEMA_ATV.test(String(a.TIPO_ATIVIDADE || ''))) return false;
+  return a.TIPO_ATIVIDADE === 'Tentativa de contato' ? eu().gestor : (a.USUARIO === eu().id || eu().gestor);
+}
+function formExcluirAtividade(a) {
+  if (!podeExcluirAtv(a)) return;
+  const tent = a.TIPO_ATIVIDADE === 'Tentativa de contato';
+  showForm(tent ? 'Excluir tentativa de contato' : 'Excluir registro', `<p class="subtitle">${esc((escola(a.ID_ESCOLA) || {}).NOME_ESCOLA || '')}</p><div class="notice"><strong>${esc(a.TIPO_ATIVIDADE)}${a.CANAL ? ' · ' + esc(a.CANAL) : ''}</strong> — ${dataHora(a.DATA_HORA)} · ${esc(nomeUsuario(a.USUARIO))}${a.RESULTADO ? '<br>Resultado: ' + esc(a.RESULTADO) : ''}${a.DESCRICAO ? '<br>' + esc(a.DESCRICAO) : ''}</div><p class="visual-tip">${tent ? 'A contagem de tentativas volta uma posição e as datas da última/próxima tentativa são recalculadas. ' : ''}A exclusão fica registrada no Histórico da escola (quem excluiu e quando).</p>`,
+    async () => {
+      await gravar('excluirAtividade', { ID_ATIVIDADE: a.ID_ATIVIDADE });
+      const i = D.tabelas.ATIVIDADES.findIndex(x => x.ID_ATIVIDADE === a.ID_ATIVIDADE); if (i >= 0) D.tabelas.ATIVIDADES.splice(i, 1);
+      redesenhar(); guardarCopiaLocal(); toast(tent ? 'Tentativa excluída.' : 'Registro excluído.');
+    }, 'Excluir');
+  $('active-form').querySelector('[type=submit]').classList.add('danger');
 }
 /** Só o gestor edita uma tentativa já registrada (v1.19). */
 function formEditarTentativa(a) {
@@ -1919,6 +1953,7 @@ addEventListener('click', async e => {
         break;
       }
       case 'edit-tentativa': formEditarTentativa(achar('ATIVIDADES', 'ID_ATIVIDADE', ref)); break;
+      case 'excluir-atividade': formExcluirAtividade(achar('ATIVIDADES', 'ID_ATIVIDADE', ref)); break;
       case 'lote-abrir': formLote(); break;
       case 'lote-limpar': selCli.clear(); render(); break;
       case 'lixeira-restaurar': await restaurarEscola(b.dataset.id); break;
