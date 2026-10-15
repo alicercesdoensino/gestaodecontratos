@@ -229,6 +229,14 @@ th.col-sel,td.col-sel{width:34px;padding-right:0}
 .etapa-opcoes button:hover{background:var(--soft)}
 .etapa-opcoes button.atual{color:var(--teal-dark);font-weight:700}
 @media (max-width:760px){.head-acoes .button{padding:7px 9px;font-size:11px}}
+
+/* v1.24 agenda Google */
+.agenda-resumo{font-size:11px;line-height:1.7;margin-top:12px;color:var(--ink)}.agenda-resumo span{color:var(--muted)}.agenda-resumo.off{color:var(--muted)}
+.agenda-acoes{margin-top:8px}
+.agenda-ok{background:var(--soft);color:var(--teal-dark);border-radius:10px;padding:14px;font-size:12px;line-height:1.7}
+.agenda-erro{background:#fbe8e5;color:#a53d35;border-radius:10px;padding:14px;font-size:12px;line-height:1.7}
+.livres{display:grid;gap:8px;max-height:46vh;overflow:auto}.livre-dia{display:grid;grid-template-columns:90px 1fr;gap:10px;font-size:12px;padding:8px 0;border-bottom:1px solid var(--border)}.livre-dia strong{text-transform:capitalize}.livre-dia span{color:var(--muted);line-height:1.7}
+.dias-linha .multi{display:flex;flex-wrap:wrap;gap:4px 18px;border:1px solid var(--border);border-radius:10px;padding:10px 14px}.dias-linha .multi legend{padding:0 4px}.dias-linha .check-field{margin:0}
 </style>
   <script>
     /* ===== ENDEREÇO DA API (link /exec do Apps Script) ===== */
@@ -261,7 +269,7 @@ th.col-sel,td.col-sel{width:34px;padding-right:0}
   <div class="shell">
     <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola ou código ELP…" aria-label="Buscar escola em todo o CRM"></label><button class="sync" data-action="refresh" id="sync-status" title="Atualizar dados da planilha" style="background:none">Tudo salvo</button><span class="date-label" id="date-label"></span><span class="avatar small" id="top-avatar"></span></div></header>
     <main id="main" tabindex="-1"></main>
-    <footer>ALICERCES · CRM <span>Versão da tela 1.23 · 15/10/2026</span></footer>
+    <footer>ALICERCES · CRM <span>Versão da tela 1.24 · 15/10/2026</span></footer>
   </div>
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-title"><div id="form-content"></div></dialog>
@@ -375,7 +383,7 @@ async function api(acao, dados = {}, idOp = '') {
   }
   return json.resultado;
 }
-const IDS = { DEPARA_SEGMENTOS: 'ID_DEPARA', ESCOLAS: 'ID_ESCOLA', CONTATOS: 'ID_CONTATO', OPORTUNIDADES: 'ID_OPORTUNIDADE', ATIVIDADES: 'ID_ATIVIDADE', TAREFAS: 'ID_TAREFA', REUNIOES: 'ID_REUNIAO', CONTRATACOES: 'ID_CONTRATACAO', CONTRATOS: 'ID_CONTRATO', ANOS_LETIVOS: 'ID_ANO_LETIVO', RENOVACOES: 'ID_RENOVACAO', KITS_CONTRATADOS: 'ID_ITEM', PEDAGOGICO: 'ID_PEDAGOGICO', DEMANDAS: 'ID_DEMANDA', MENSAGENS: 'ID_MENSAGEM', DOCUMENTOS: 'ID_DOCUMENTO', USUARIOS: 'ID_USUARIO', HABILITACOES: 'ID_HABILITACAO', HISTORICO: 'ID_HISTORICO', CHECKLIST: 'ID_ITEM_CHECK', CHECKLIST_ETAPAS: 'ID_ETAPA' };
+const IDS = { DEPARA_SEGMENTOS: 'ID_DEPARA', ESCOLAS: 'ID_ESCOLA', CONTATOS: 'ID_CONTATO', OPORTUNIDADES: 'ID_OPORTUNIDADE', ATIVIDADES: 'ID_ATIVIDADE', TAREFAS: 'ID_TAREFA', REUNIOES: 'ID_REUNIAO', CONTRATACOES: 'ID_CONTRATACAO', CONTRATOS: 'ID_CONTRATO', ANOS_LETIVOS: 'ID_ANO_LETIVO', RENOVACOES: 'ID_RENOVACAO', KITS_CONTRATADOS: 'ID_ITEM', PEDAGOGICO: 'ID_PEDAGOGICO', DEMANDAS: 'ID_DEMANDA', MENSAGENS: 'ID_MENSAGEM', DOCUMENTOS: 'ID_DOCUMENTO', USUARIOS: 'ID_USUARIO', HABILITACOES: 'ID_HABILITACAO', HISTORICO: 'ID_HISTORICO', CHECKLIST: 'ID_ITEM_CHECK', CHECKLIST_ETAPAS: 'ID_ETAPA', DISPONIBILIDADE: 'ID_DISPONIBILIDADE' };
 /** Lixeira (v1.15): escolas excluídas e tudo ligado a elas saem das tabelas da tela e ficam em D.excluidas. */
 function separarExcluidas() {
   if (!D || !D.tabelas) return;
@@ -1382,8 +1390,51 @@ function abrirTarefa(id) {
 function equipePage() {
   const g = eu().gestor;
   return heading('QUEM CONSTRÓI COM A GENTE', 'Equipe', g ? 'Cadastre as pessoas, defina o perfil e redefina senhas quando precisar.' : 'Quem está no CRM e como falar com cada pessoa.', g ? btn('+ Nova pessoa', 'new-user') : '')
-    + `<div class="section-grid">${usuarios().map(u => { const abertas = T('TAREFAS').filter(t => t.RESPONSAVEL === u.ID_USUARIO && t.STATUS === 'Aberta').length, ops = leads().filter(o => o.RESPONSAVEL_ATUAL === u.ID_USUARIO).length; return `<section class="panel ${sim(u.ATIVO) ? '' : 'inactive'}"><div class="member"><span class="avatar">${esc(iniciais(u.NOME))}</span><div><h3>${esc(u.NOME)}</h3><p>${esc([u.CARGO, u.SETOR].filter(Boolean).join(' · '))}</p></div></div><p class="subtitle">${esc(u.EMAIL_GOOGLE)}</p><div class="permissions">${badge(u.PERFIL_PERMISSAO || 'Sem perfil', /gestor/i.test(u.PERFIL_PERMISSAO) ? 'orange' : 'teal')}${sim(u.ATIVO) ? '' : badge('Inativo', 'red')}</div><p class="secondary-text" style="margin-top:12px">${ops} oportunidades · ${abertas} tarefas abertas</p>${g ? `<div class="inline-actions">${btn('Editar', 'edit-user', 'secondary', `data-ref="${esc(u.ID_USUARIO)}"`)}${btn('Redefinir senha', 'reset-pass', 'text', `data-ref="${esc(u.ID_USUARIO)}"`)}</div>` : ''}</section>`; }).join('')}</div>`
+    + `<div class="section-grid">${usuarios().map(u => { const abertas = T('TAREFAS').filter(t => t.RESPONSAVEL === u.ID_USUARIO && t.STATUS === 'Aberta').length, ops = leads().filter(o => o.RESPONSAVEL_ATUAL === u.ID_USUARIO).length; return `<section class="panel ${sim(u.ATIVO) ? '' : 'inactive'}"><div class="member"><span class="avatar">${esc(iniciais(u.NOME))}</span><div><h3>${esc(u.NOME)}</h3><p>${esc([u.CARGO, u.SETOR].filter(Boolean).join(' · '))}</p></div></div><p class="subtitle">${esc(u.EMAIL_GOOGLE)}</p><div class="permissions">${badge(u.PERFIL_PERMISSAO || 'Sem perfil', /gestor/i.test(u.PERFIL_PERMISSAO) ? 'orange' : 'teal')}${sim(u.ATIVO) ? '' : badge('Inativo', 'red')}</div><p class="secondary-text" style="margin-top:12px">${ops} oportunidades · ${abertas} tarefas abertas</p>${resumoAgenda(u)}${g ? `<div class="inline-actions">${btn('Editar', 'edit-user', 'secondary', `data-ref="${esc(u.ID_USUARIO)}"`)}${btn('Redefinir senha', 'reset-pass', 'text', `data-ref="${esc(u.ID_USUARIO)}"`)}</div>` : ''}</section>`; }).join('')}</div>`
     + (g ? '<div class="notice" style="margin-top:20px">“Redefinir senha” faz a pessoa voltar a entrar com a senha provisória (CRM_SENHA_INICIAL) e criar uma nova no primeiro acesso.</div>' : '');
+}
+
+/* ---------- Agenda integrada ao Google (v1.24): horários de atendimento e teste de conexão ---------- */
+const dispDe = id => T('DISPONIBILIDADE').find(d => d.ID_USUARIO === id);
+const podeAgenda = id => eu().gestor || id === eu().id;
+function resumoAgenda(u) {
+  const d = dispDe(u.ID_USUARIO), pode = podeAgenda(u.ID_USUARIO);
+  if (!d && !pode) return '';
+  const info = d ? `<p class="agenda-resumo">📅 <strong>${sim(d.ATIVO) ? 'Agenda ativa' : 'Agenda pausada'}</strong> · ${esc(d.DIAS_SEMANA)} · ${esc(d.JANELAS)}<br><span>Reuniões de ${esc(d.DURACAO_MIN)} min · intervalo ${esc(d.INTERVALO_MIN || 0)} min · antecedência ${esc(d.ANTECEDENCIA_HORAS || 0)} h · até ${esc(d.PRAZO_DIAS)} dias</span></p>` : `<p class="agenda-resumo off">📅 Agenda Google ainda não configurada.</p>`;
+  return info + (pode ? `<div class="inline-actions agenda-acoes">${btn(d ? 'Horários de atendimento' : 'Configurar agenda', 'agenda-disp', d ? 'text' : 'secondary', `data-ref="${esc(u.ID_USUARIO)}"`)}${d ? btn('Testar conexão', 'agenda-testar', 'text', `data-ref="${esc(u.ID_USUARIO)}"`) : ''}</div>` : '');
+}
+function formDisponibilidade(u) {
+  const d = dispDe(u.ID_USUARIO) || { DIAS_SEMANA: 'seg, ter, qua, qui, sex', JANELAS: '09:00 às 12:00; 13:30 às 17:00', DURACAO_MIN: 60, INTERVALO_MIN: 15, PASSO_MIN: 30, ANTECEDENCIA_HORAS: 24, PRAZO_DIAS: 60, ATIVO: true };
+  const num = (rot, nome, min, max) => campo(rot, nome, 'number', d[nome], true, `min="${min}" max="${max}" step="1"`);
+  showForm(`Horários de atendimento · ${esc(u.NOME)}`,
+    `<p class="subtitle" style="margin-top:0">Agenda Google: <strong>${esc((u.GOOGLE_CALENDAR_ID || u.EMAIL_GOOGLE || '').toLowerCase())}</strong></p>`
+    + `<div class="dias-linha">${multipla('Dias de atendimento', 'DIAS_SEMANA', ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'], d.DIAS_SEMANA)}</div>`
+    + campo('Horários (separe os períodos com ";")', 'JANELAS', 'text', d.JANELAS, true, 'placeholder="09:00 às 12:00; 13:30 às 17:00"')
+    + '<p class="visual-tip">O intervalo entre os períodos (ex.: almoço) nunca é oferecido. A última reunião começa a tempo de terminar no fim do período.</p>'
+    + linha(num('Duração da reunião (min)', 'DURACAO_MIN', 15, 240), num('Intervalo entre reuniões (min)', 'INTERVALO_MIN', 0, 120))
+    + linha(lista('Opções de horário a cada', 'PASSO_MIN', [15, 30, 60].map(m => `<option value="${m}" ${Number(d.PASSO_MIN || 30) === m ? 'selected' : ''}>${m} min</option>`).join('')), num('Antecedência mínima (horas)', 'ANTECEDENCIA_HORAS', 0, 720))
+    + linha(num('Marcar até quantos dias à frente', 'PRAZO_DIAS', 1, 180), '<div></div>')
+    + marca('Agenda ativa (aparece para agendamento)', 'ATIVO', sim(d.ATIVO))
+    + '<div class="notice" style="margin:6px 0 0">Férias, atestados e outros compromissos: lance direto no Google Agenda. O CRM bloqueia esses horários automaticamente.</div>',
+    v => gravar('salvarDisponibilidade', { ...v, ID_USUARIO: u.ID_USUARIO }, 'Horários salvos.'));
+}
+async function testarAgenda(u, b) {
+  const txt = b.textContent; b.disabled = true; b.textContent = 'Consultando o Google…';
+  try {
+    const r = await api('agendaTestar', { ID_USUARIO: u.ID_USUARIO });
+    const porDia = {}; r.livres.forEach(h => { (porDia[h.slice(0, 10)] = porDia[h.slice(0, 10)] || []).push(h.slice(11)); });
+    const dias = Object.keys(porDia);
+    showForm(`Conexão com o Google Agenda · ${esc(u.NOME)}`,
+      `<div class="agenda-ok">✅ <strong>Conectado.</strong> A agenda <strong>${esc(r.calendario)}</strong> respondeu: ${r.ocupados} compromisso(s) nos próximos ${r.dias} dias.</div>`
+      + `<h4 style="margin:18px 0 8px">Próximos horários livres para reunião</h4>`
+      + (dias.length ? `<div class="livres">${dias.map(dd => `<div class="livre-dia"><strong>${esc(new Date(dd + 'T12:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' }))}</strong><span>${porDia[dd].map(esc).join(' · ')}</span></div>`).join('')}</div>` : vazio('Nenhum horário livre nos próximos ' + r.dias + ' dias.'))
+      + '<p class="visual-tip" style="margin-top:14px">Confira com o seu Google Agenda: os horários ocupados lá não podem aparecer aqui.</p>',
+      () => true, 'Fechar');
+    const cancelar = $('active-form').querySelector('[data-action=close-form].secondary'); if (cancelar) cancelar.style.display = 'none';
+  } catch (e) {
+    showForm('Conexão com o Google Agenda', `<div class="agenda-erro">⚠️ ${esc(e.message)}</div>${e.codigo === 'CALENDAR_OFF' ? '<p class="visual-tip" style="margin-top:12px">Falta ativar a integração no Apps Script (passo a passo da versão 1.24).</p>' : ''}`, () => true, 'Fechar');
+    const cancelar = $('active-form').querySelector('[data-action=close-form].secondary'); if (cancelar) cancelar.style.display = 'none';
+  } finally { b.disabled = false; b.textContent = txt; }
 }
 
 /* ---------- Relatórios ---------- */
@@ -2077,6 +2128,8 @@ addEventListener('click', async e => {
       case 'task-view': viewTarefas = ref; render(); break;
       case 'new-user': formUsuario({}); break;
       case 'edit-user': formUsuario(achar('USUARIOS', 'ID_USUARIO', ref)); break;
+      case 'agenda-disp': formDisponibilidade(achar('USUARIOS', 'ID_USUARIO', ref)); break;
+      case 'agenda-testar': testarAgenda(achar('USUARIOS', 'ID_USUARIO', ref), b); break;
       case 'reset-pass': if (confirmar(b, 'Clique de novo para confirmar')) { const r = await api('resetarSenha', { idUsuario: ref }); toast(r.mensagem); } break;
       case 'export-csv': exportarCsv(); break;
       case 'cfg-aba': cfgAba = ref; render(); break;
