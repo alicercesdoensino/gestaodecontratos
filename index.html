@@ -281,7 +281,7 @@ th.col-sel,td.col-sel{width:34px;padding-right:0}
   <div class="shell">
     <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola ou código ELP…" aria-label="Buscar escola em todo o CRM"></label><button class="sync" data-action="refresh" id="sync-status" title="Atualizar dados da planilha" style="background:none">Tudo salvo</button><span class="date-label" id="date-label"></span><span class="avatar small" id="top-avatar"></span></div></header>
     <main id="main" tabindex="-1"></main>
-    <footer>ALICERCES · CRM <span>Versão da tela 1.26 · 15/10/2026</span></footer>
+    <footer>ALICERCES · CRM <span>Versão da tela 1.27 · 16/10/2026</span></footer>
   </div>
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-title"><div id="form-content"></div></dialog>
@@ -387,7 +387,7 @@ async function api(acao, dados = {}, idOp = '') {
     throw new Error('Não foi possível falar com o servidor. Confira sua internet e tente de novo.');
   }
   let json;
-  try { json = await resp.json(); } catch { throw new Error('Resposta inesperada do servidor. Confira se a implantação do Apps Script está como "Qualquer pessoa".'); }
+  try { json = await resp.json(); } catch { const e = new Error('Resposta inesperada do servidor. Confira se a implantação do Apps Script está como "Qualquer pessoa".'); e.codigo = 'RESPOSTA_INVALIDA'; throw e; }
   if (!json.ok) {
     if (json.codigo === 'SESSAO') { sair(true); }
     if (json.codigo === 'TROCAR_SENHA') { telaSenha(true); }
@@ -1438,6 +1438,7 @@ async function testarAgenda(u, b) {
     const dias = Object.keys(porDia);
     showForm(`Conexão com o Google Agenda · ${esc(u.NOME)}`,
       `<div class="agenda-ok">✅ <strong>Conectado.</strong> A agenda <strong>${esc(r.calendario)}</strong> respondeu: ${r.ocupados} compromisso(s) nos próximos ${r.dias} dias.</div>`
+      + (r.permissao && !['writer', 'owner'].includes(r.permissao) ? `<div class="agenda-erro" style="margin-top:10px">⚠️ <strong>Permissão só de leitura.</strong> O CRM vê os horários, mas não consegue criar reuniões nesta agenda. No Google Agenda da pessoa: Configurações → nome da agenda → Compartilhado com → ferramentas@ → <strong>“Fazer alterações (ver eventos particulares como disponível/ocupado)”</strong>.</div>` : '')
       + `<h4 style="margin:18px 0 8px">Próximos horários livres para reunião</h4>`
       + (dias.length ? `<div class="livres">${dias.map(dd => `<div class="livre-dia"><strong>${esc(new Date(dd + 'T12:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' }))}</strong><span>${porDia[dd].map(esc).join(' · ')}</span></div>`).join('')}</div>` : vazio('Nenhum horário livre nos próximos ' + r.dias + ' dias.'))
       + '<p class="visual-tip" style="margin-top:14px">Confira com o seu Google Agenda: os horários ocupados lá não podem aparecer aqui.</p>',
@@ -1482,6 +1483,14 @@ function specAgendar(idEscola) {
         await gravar('agendar', { ...v, ID_ESCOLA: idE }, `Reunião agendada para ${dataHora(v.INICIO)}. Convite enviado para ${v.CONTATO_EMAIL}.`);
         delete slotsCache[v.RESPONSAVEL];
       } catch (err) {
+        if (err.codigo === 'RESPOSTA_INVALIDA' || /Failed to fetch|falar com o servidor/i.test(err.message)) { // v1.27: a resposta se perdeu — confere se a reunião foi criada
+          toast('Conferindo se a reunião foi criada…');
+          try { await api('horariosLivres', { ID_USUARIO: v.RESPONSAVEL }); await recarregar(); } catch {}
+          const feita = T('REUNIOES').find(r => r.RESPONSAVEL === v.RESPONSAVEL && String(r.DATA_HORA_INICIO).slice(0, 16) === v.INICIO && r.STATUS !== 'Cancelada' && r.GOOGLE_EVENT_ID);
+          delete slotsCache[v.RESPONSAVEL];
+          if (feita) { toast(`Reunião agendada para ${dataHora(v.INICIO)}. Convite enviado para ${v.CONTATO_EMAIL}.`); return; }
+          throw new Error('Não foi possível confirmar o agendamento. Confira a agenda no Google antes de tentar de novo.');
+        }
         if (err.codigo === 'HORARIO_OCUPADO') { delete slotsCache[v.RESPONSAVEL]; const f = $('atv-form') || $('active-form'); if (f) { f.querySelector('[name=INICIO]').value = ''; carregarSlots(f); } }
         throw err;
       }
@@ -1494,6 +1503,7 @@ async function carregarSlots(f) {
   box.innerHTML = '<p class="visual-tip">Carregando horários livres…</p>';
   try {
     slotsCache[id] = { quando: Date.now(), dados: await api('horariosLivres', { ID_USUARIO: id }) };
+    if (slotsCache[id].dados.recuperadas) recarregar(); // v1.27: reunião criada no Google que faltava no CRM
     if (f.isConnected && f.querySelector('[name=RESPONSAVEL]').value === id) { f.dataset.slotsDe = id; desenharSlots(f); }
   } catch (err) { if (f.isConnected) box.innerHTML = `<div class="agenda-erro">⚠️ ${esc(err.message)}</div>`; }
 }
