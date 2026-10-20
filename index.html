@@ -271,6 +271,9 @@ code{background:#f1f3ec;border-radius:4px;padding:1px 5px;font-size:11px}
 .sino-lista{display:grid;gap:8px}.sino-item{display:grid;text-align:left;gap:2px;background:#fffaf4;border:1px solid #f3dfc8;border-radius:10px;padding:10px 12px}
 .sino-item span{font-size:13px}.sino-item small{color:var(--muted)}.sino-item:hover{background:#fff0e3}
 .timeline-item.email-novo{background:#fffaf4;border-radius:0 10px 10px 0}
+
+/* v1.31 aprovação */
+.aprov-box{border:1px dashed #cfe3dd;border-radius:10px;padding:10px 12px;margin:4px 0 14px;background:#fbfdfc}.aprov-box .check-field{font-size:12px}.aprov-box [data-aprov]{margin-top:10px}
 </style>
   <script>
     /* ===== ENDEREÇO DA API (link /exec do Apps Script) ===== */
@@ -303,7 +306,7 @@ code{background:#f1f3ec;border-radius:4px;padding:1px 5px;font-size:11px}
   <div class="shell">
     <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola ou código ELP…" aria-label="Buscar escola em todo o CRM"></label><button type="button" class="sino" id="sino" data-action="sino" aria-label="E-mails novos">🔔</button><button class="sync" data-action="refresh" id="sync-status" title="Atualizar dados da planilha" style="background:none">Tudo salvo</button><span class="date-label" id="date-label"></span><span class="avatar small" id="top-avatar"></span></div></header>
     <main id="main" tabindex="-1"></main>
-    <footer>ALICERCES · CRM <span>Versão da tela 1.30 · 20/10/2026</span></footer>
+    <footer>ALICERCES · CRM <span>Versão da tela 1.31 · 20/10/2026</span></footer>
   </div>
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-title"><div id="form-content"></div></dialog>
@@ -1628,11 +1631,13 @@ function specEmail(e) {
       + campo('Assunto', 'ASSUNTO', 'text', orig ? (/^re:/i.test(orig.ASSUNTO) ? orig.ASSUNTO : 'Re: ' + orig.ASSUNTO) : '', true, 'maxlength="250"')
       + `<label class="field">Mensagem *<textarea name="CORPO" required maxlength="20000" rows="9"></textarea></label>`
       + `<div class="assinatura-prev"><span>Assinatura automática</span><strong>${esc(eu().nome)}</strong><br>Equipe Alicerces do Ensino</div>`
-      + `<label class="field">Anexos <small class="secondary-text">(até 18 MB no total)</small><input type="file" data-anexos multiple></label><p class="anexos-lista visual-tip" data-anexos-lista></p>`,
+      + `<label class="field">Anexos <small class="secondary-text">(até 18 MB no total)</small><input type="file" data-anexos multiple></label><p class="anexos-lista visual-tip" data-anexos-lista></p>`
+      + blocoAprovacao(e),
     depois: f => {
       const sel = f.querySelector('[data-modelo]'), arq = f.querySelector('[data-anexos]');
       if (sel) sel.onchange = () => { const m = T('MODELOS_EMAIL').find(x => x.ID_MODELO === sel.value); if (!m) return; const marc = f.querySelector('[data-multi=PARA]:checked'), c = marc && cts.find(x => x.EMAIL === marc.value);
         f.querySelector('[name=ASSUNTO]').value = aplicarModelo(m.ASSUNTO, e, c && c.NOME); f.querySelector('[name=CORPO]').value = aplicarModelo(m.CORPO, e, c && c.NOME); };
+      const ap = f.querySelector('[name=APROVACAO]'); if (ap) { const tg = () => { f.querySelector('[data-aprov]').hidden = !ap.checked; const b = f.querySelector('[type=submit]'); if (b && !orig) b.textContent = ap.checked ? 'Enviar pedido de aprovação' : 'Enviar e-mail'; }; ap.onchange = tg; tg(); }
       arq.onchange = () => { const fs = [...arq.files], tot = fs.reduce((s, x) => s + x.size, 0); f.querySelector('[data-anexos-lista]').textContent = fs.length ? fs.map(x => `📎 ${x.name} (${Math.ceil(x.size / 1024)} KB)`).join(' · ') + (tot > 18 * 1048576 ? ' — passa de 18 MB!' : '') : ''; };
     },
     onSubmit: async (v, f) => {
@@ -1641,13 +1646,14 @@ function specEmail(e) {
       const fs = [...(f.querySelector('[data-anexos]').files || [])];
       if (fs.reduce((s, x) => s + x.size, 0) > 18 * 1048576) throw new Error('Os anexos passam de 18 MB. Envie arquivos menores ou um link do Drive.');
       const ANEXOS = await Promise.all(fs.map(x => new Promise((ok, erro) => { const r = new FileReader(); r.onload = () => ok({ nome: x.name, tipo: x.type || 'application/octet-stream', base64: String(r.result).split(',')[1] || '' }); r.onerror = () => erro(new Error('Não consegui ler o arquivo ' + x.name)); r.readAsDataURL(x); })));
-      const r = await gravar('enviarEmail', { ID_ESCOLA: e.ID_ESCOLA, PARA: para, CC: v.CC, ASSUNTO: v.ASSUNTO, CORPO: v.CORPO, ANEXOS, RESPONDER_A: orig ? orig.ID_EMAIL : '' }, orig ? 'Resposta enviada.' : 'E-mail enviado.');
+      const r = await gravar('enviarEmail', { ID_ESCOLA: e.ID_ESCOLA, PARA: para, CC: v.CC, ASSUNTO: v.ASSUNTO, CORPO: v.CORPO, ANEXOS, RESPONDER_A: orig ? orig.ID_EMAIL : '', APROVACAO: !!v.APROVACAO, ID_ITEM_CHECK: v.APROVACAO ? v.ID_ITEM_CHECK : '' }, v.APROVACAO ? 'Pedido de aprovação enviado.' : orig ? 'Resposta enviada.' : 'E-mail enviado.');
       respostaA = ''; return r;
     } };
 }
 function itemEmail(m) {
   const env = m.DIRECAO === 'Enviado', corpo = String(m.CORPO || ''), curto = corpo.length > 600;
   return `<div class="timeline-item hist-emails ${env ? 'email-env' : 'email-rec'}${!env && !sim(m.LIDO) ? ' email-novo' : ''}"><small>${dataHora(m.DATA_HORA)} · ${env ? esc(nomeUsuario(m.USUARIO)) : esc(m.DE || '')}<span class="activity-type">${env ? '✉️ E-mail enviado' : '📩 E-mail recebido'}</span></small>`
+    + (env && m.TIPO === 'Aprovação' ? `<p>${badge(m.APROVACAO_STATUS === 'Aprovado' ? '✅ Aprovado' + (m.APROVADO_EM ? ' em ' + dataHora(m.APROVADO_EM) : '') : m.APROVACAO_STATUS === 'Ajustes solicitados' ? '✏️ Ajustes solicitados' : '⏳ Aguardando aprovação', m.APROVACAO_STATUS === 'Aprovado' ? 'teal' : m.APROVACAO_STATUS === 'Ajustes solicitados' ? 'red' : 'orange')}${m.ID_ITEM_CHECK ? ` <small class="secondary-text">etapa: ${esc((T('CHECKLIST').find(c => c.ID_ITEM_CHECK === m.ID_ITEM_CHECK) || {}).NOME || m.ID_ITEM_CHECK)}</small>` : ''}</p>` : '')
     + `<p><strong>${esc(m.ASSUNTO || '(sem assunto)')}</strong><br><small class="secondary-text">${env ? 'Para: ' + esc(m.PARA) + (m.CC ? ' · Cc: ' + esc(m.CC) : '') : 'De: ' + esc(m.DE)}</small></p>`
     + (curto ? `<details class="email-corpo"><summary>${esc(corpo.slice(0, 280))}… <span class="text-link">ver tudo</span></summary><p style="white-space:pre-line">${esc(corpo)}</p></details>` : `<p style="white-space:pre-line">${esc(corpo)}</p>`)
     + (!env ? `<div class="hist-tarefa">${!sim(m.LIDO) ? badge('Novo', 'orange') + ' ' : ''}${btn('↩ Responder', 'email-responder', 'text', `data-ref="${esc(m.ID_EMAIL)}"`)}</div>` : '')
@@ -1692,6 +1698,16 @@ function marcarLidosDaEscola(id) {
   if (!meus.length || marcarLidosDaEscola.indo === id) return;
   marcarLidosDaEscola.indo = id;
   api('marcarEmailsLidos', { ID_ESCOLA: id }, novoIdOp()).then(r => { aplicarMudancas(r.mudancas); redesenhar(); }).catch(() => {}).finally(() => { marcarLidosDaEscola.indo = ''; });
+}
+
+/* ---------- v1.31: pedido de aprovação (botões no e-mail) ---------- */
+function blocoAprovacao(e) {
+  const ord = { COMERCIAL: 1, RENOVACAO: 2, PEDAGOGICO: 3 }, rot = { COMERCIAL: 'Contratação', RENOVACAO: 'Renovação', PEDAGOGICO: 'Pedagógico' };
+  const pend = T('CHECKLIST').filter(c => c.ID_ESCOLA === e.ID_ESCOLA && c.STATUS === 'Pendente' && c.PROCESSO !== 'PEDAGOGICO').sort((a, b) => (ord[a.PROCESSO] - ord[b.PROCESSO]) || Number(a.ORDEM) - Number(b.ORDEM));
+  const sug = pend.find(c => /APROVACAO_(CLIENTE|ADITIVO)/.test(c.CHAVE));
+  return `<div class="aprov-box">${marca('📝 Pedir aprovação: o cliente recebe os botões <strong>✅ Aprovo</strong> e <strong>✏️ Preciso de ajustes</strong>', 'APROVACAO', false)}`
+    + `<div data-aprov hidden>${lista('Quando o cliente aprovar, marcar a etapa', 'ID_ITEM_CHECK', `<option value="">Não marcar etapa (só registrar a aprovação)</option>${pend.map(c => `<option value="${esc(c.ID_ITEM_CHECK)}" ${sug && sug.ID_ITEM_CHECK === c.ID_ITEM_CHECK ? 'selected' : ''}>${esc(rot[c.PROCESSO] || c.PROCESSO)} · ${esc(c.NOME)}</option>`).join('')}`)}`
+    + `<p class="visual-tip">A resposta chega aqui com ✉️ e 🔔 para você. Ao aprovar, a etapa escolhida é marcada sozinha (em seu nome, com a observação “Aprovado pelo cliente por e-mail”).</p></div></div>`;
 }
 
 /* ---------- Relatórios ---------- */
