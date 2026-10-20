@@ -279,6 +279,9 @@ code{background:#f1f3ec;border-radius:4px;padding:1px 5px;font-size:11px}
 .sino-linha{display:flex;gap:8px;align-items:stretch}.sino-linha .sino-item{flex:1}
 .sino-lido{background:#fff;border:1px solid #cfe3dd;color:var(--teal-dark);border-radius:10px;padding:0 12px;font-size:12px;font-weight:700;white-space:nowrap}.sino-lido:hover{background:var(--soft)}
 .sino-todos{display:flex;justify-content:flex-end;margin-top:12px}
+
+/* v1.31.2 aviso por cima das janelas */
+.toast[popover]{top:auto;right:auto;margin:0;border:0;overflow:visible}.toast:not(.visible){pointer-events:none}
 </style>
   <script>
     /* ===== ENDEREÇO DA API (link /exec do Apps Script) ===== */
@@ -311,7 +314,7 @@ code{background:#f1f3ec;border-radius:4px;padding:1px 5px;font-size:11px}
   <div class="shell">
     <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola ou código ELP…" aria-label="Buscar escola em todo o CRM"></label><button type="button" class="sino" id="sino" data-action="sino" aria-label="E-mails novos">🔔</button><button class="sync" data-action="refresh" id="sync-status" title="Atualizar dados da planilha" style="background:none">Tudo salvo</button><span class="date-label" id="date-label"></span><span class="avatar small" id="top-avatar"></span></div></header>
     <main id="main" tabindex="-1"></main>
-    <footer>ALICERCES · CRM <span>Versão da tela 1.31.1 · 20/10/2026</span></footer>
+    <footer>ALICERCES · CRM <span>Versão da tela 1.31.2 · 20/10/2026</span></footer>
   </div>
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-title"><div id="form-content"></div></dialog>
@@ -658,12 +661,16 @@ async function iniciar() {
 }
 
 /* ---------- Componentes ---------- */
+/* v1.31.2: o aviso aparece por cima das janelas abertas (camada superior do navegador) */
+function toastNoTopo(t) {
+  try { if (!t.popover) t.popover = 'manual'; if (t.matches(':popover-open')) t.hidePopover(); t.showPopover(); } catch (e) {}
+}
 function toastAcao(text, rotulo, fn, erro = true) {
-  const t = $('toast'); t.innerHTML = ''; t.append(document.createTextNode(text + ' '));
+  const t = $('toast'); toastNoTopo(t); t.innerHTML = ''; t.append(document.createTextNode(text + ' '));
   const b = document.createElement('button'); b.type = 'button'; b.className = 'toast-acao'; b.textContent = rotulo; b.onclick = () => { t.classList.remove('visible'); fn(); };
   t.append(b); t.classList.toggle('erro', erro); t.classList.add('visible'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('visible'), 12000);
 }
-function toast(text, erro = false) { const t = $('toast'); t.textContent = text; t.classList.toggle('erro', erro); t.classList.add('visible'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('visible'), erro ? 9000 : 3500); }
+function toast(text, erro = false) { const t = $('toast'); toastNoTopo(t); t.textContent = text; t.classList.toggle('erro', erro); t.classList.add('visible'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('visible'), erro ? 9000 : 3500); }
 const badge = (t, c = 'teal') => `<span class="pill ${c}">${esc(t)}</span>`;
 const heading = (k, t, s, a = '') => `<div class="page-heading"><div><div class="eyebrow">${k}</div><h1>${t}</h1><p class="subtitle">${s}</p></div><div class="heading-actions">${a}</div></div>`;
 const btn = (t, a, k = '', x = '') => `<button class="button ${k}" data-action="${a}" ${x}>${t}</button>`;
@@ -2448,7 +2455,7 @@ addEventListener('click', async e => {
       case 'cfg-aba': cfgAba = ref; render(); break;
       case 'modelo-novo': formModelo({}); break;
       case 'sino': abrirSino(); break;
-      case 'email-lido': { const m = achar('EMAILS', 'ID_EMAIL', ref); if (m) await marcarLidos([m]); break; }
+      case 'email-lido': { const m = achar('EMAILS', 'ID_EMAIL', ref); if (!m) { toast('Não encontrei este e-mail na tela (' + (ref || 'sem código') + '). Clique em “Tudo salvo” para atualizar e tente de novo.', true); break; } b.disabled = true; b.textContent = 'Marcando…'; await marcarLidos([m]); break; }
       case 'emails-todos-lidos': await marcarLidos(meusNaoLidos()); break;
       case 'abrir-emails': if (formDialog.open) formDialog.close(); filtroHist = 'emails'; abrirEscola(b.dataset.id, 2); filtroHist = 'emails'; renderDetail(true); break;
       case 'email-responder': respostaA = ref; painelAtv = 'email'; renderDetail(true); break;
