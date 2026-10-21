@@ -307,6 +307,25 @@ code{background:#f1f3ec;border-radius:4px;padding:1px 5px;font-size:11px}
 /* v1.34: etiqueta "Contactar" nos leads sem tentativa */
 .tag-contactar{display:inline-block;background:#ffd84d;color:#5c4400;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:3px 9px;border-radius:5px;margin-bottom:9px;box-shadow:0 1px 2px #8a6a0026}
 td .tag-contactar{margin:0 0 6px}
+/* v1.35: Central de links */
+.link-grupo{margin-bottom:26px}.link-grupo[hidden]{display:none}
+.link-grupo h2{font-size:15px;margin:0 0 12px;display:flex;align-items:center;gap:8px}.link-grupo h2 small{background:#e8e8df;color:#6d796a;border-radius:6px;padding:2px 7px;font-size:10px}
+.link-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.link-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px;min-width:0}.link-card[hidden]{display:none}
+.link-topo{display:flex;gap:11px;align-items:flex-start}.link-ico{width:36px;height:36px;border-radius:10px;background:var(--soft);display:grid;place-items:center;font-size:17px;flex-shrink:0}
+.link-tit{min-width:0}.link-tit h3{font-size:13px;margin-bottom:4px;line-height:1.35}
+.link-url{display:block;font-size:11px;color:var(--teal-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.link-url:hover{text-decoration:underline}
+.link-acesso{background:#fbf7ef;border:1px solid #f0e6d4;border-radius:9px;padding:9px 10px;display:grid;gap:6px}
+.link-cred{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:11px}.link-cred>span{color:var(--muted);width:48px}
+.link-cred code{background:#fff;border:1px solid #ece4d4;border-radius:5px;padding:3px 7px;font-size:12px;font-family:ui-monospace,Consolas,monospace;max-width:100%;overflow-wrap:anywhere}
+.link-mini{background:transparent;border:1px solid #dcded4;border-radius:6px;padding:3px 8px;font-size:10px;color:#4e6159;cursor:pointer}.link-mini:hover{background:#f4f7f1}
+.link-obs{font-size:11px;color:var(--muted);line-height:1.6;white-space:pre-line;margin:0}
+.link-acoes{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:4px}.link-acoes .button{padding:8px 12px}
+.link-gestor{margin-left:auto;display:flex;gap:10px}
+.link-senha-box{border-left:3px solid var(--orange);padding:10px 0 2px 12px;margin:-4px 0 14px}.link-senha-box[hidden]{display:none}
+.senha-campo{display:flex;gap:6px;align-items:center;margin-top:7px}.senha-campo input{margin-top:0!important}
+#link-busca{flex:1 1 260px}
+@media(max-width:560px){.link-grade{grid-template-columns:1fr}.link-gestor{margin-left:0}}
 </style>
   <script>
     /* ===== ENDEREÇO DA API (link /exec do Apps Script) ===== */
@@ -339,7 +358,7 @@ td .tag-contactar{margin:0 0 6px}
   <div class="shell">
     <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola ou código ELP…" aria-label="Buscar escola em todo o CRM"></label><button type="button" class="sino" id="sino" data-action="sino" aria-label="E-mails novos">🔔</button><button class="sync" data-action="refresh" id="sync-status" title="Atualizar dados da planilha" style="background:none">Tudo salvo</button><span class="date-label" id="date-label"></span><span class="avatar small" id="top-avatar"></span></div></header>
     <main id="main" tabindex="-1"></main>
-    <footer>ALICERCES · CRM <span>Versão da tela 1.34 · 20/10/2026</span></footer>
+    <footer>ALICERCES · CRM <span>Versão da tela 1.35 · 21/10/2026</span></footer>
   </div>
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-title"><div id="form-content"></div></dialog>
@@ -376,8 +395,8 @@ const ETAPAS_CONTRATACAO = [
 const TABS = ['Visão geral', 'Contatos', 'Atividades', 'Reuniões', 'Comercial', 'Contratos', 'Pedagógico', 'Tarefas', 'Histórico'];
 const TABS_OCULTAS = [3, 7]; // v1.19: Reuniões e Tarefas foram para a aba Atividades (índices mantidos)
 let painelAtv = ''; // formulário aberto na aba Atividades: tent | nota | tarefa | reuniao
-const NAV = [['inicio', 'Início', 'home'], ['prospeccao', 'Prospecção', 'columns'], ['clientes', 'Clientes', 'building'], ['agenda', 'Agenda', 'calendar'], ['tarefas', 'Tarefas', 'check'], ['equipe', 'Equipe', 'users'], ['relatorios', 'Relatórios', 'chart'], ['configuracoes', 'Configurações', 'settings']];
-const PATHS = { home: 'M3 10 12 3l9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10 M9 21v-8h6v8', columns: 'M3 4h18v16H3z M9 4v16 M15 4v16', building: 'M5 21V3h14v18 M3 21h18 M9 7h1 M14 7h1 M9 11h1 M14 11h1 M10 21v-6h4v6', calendar: 'M3 5h18v16H3z M7 3v4 M17 3v4 M3 10h18 M7 14h2 M13 14h2 M7 18h2', check: 'M4 4h16v16H4z M8 12l3 3 5-6', message: 'M3 4h18v14H8l-5 3V4 M7 8h10 M7 12h7', users: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M17 4a4 4 0 0 1 0 8 M22 21v-2a4 4 0 0 0-3-4', chart: 'M4 3v18h18 M8 17v-5 M13 17V7 M18 17v-8', settings: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z', refresh: 'M20 11a8 8 0 1 0-2.3 5.7 M20 4v7h-7' };
+const NAV = [['inicio', 'Início', 'home'], ['prospeccao', 'Prospecção', 'columns'], ['clientes', 'Clientes', 'building'], ['agenda', 'Agenda', 'calendar'], ['tarefas', 'Tarefas', 'check'], ['equipe', 'Equipe', 'users'], ['relatorios', 'Relatórios', 'chart'], ['links', 'Central de links', 'link'], ['configuracoes', 'Configurações', 'settings']];
+const PATHS = { home: 'M3 10 12 3l9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10 M9 21v-8h6v8', columns: 'M3 4h18v16H3z M9 4v16 M15 4v16', building: 'M5 21V3h14v18 M3 21h18 M9 7h1 M14 7h1 M9 11h1 M14 11h1 M10 21v-6h4v6', calendar: 'M3 5h18v16H3z M7 3v4 M17 3v4 M3 10h18 M7 14h2 M13 14h2 M7 18h2', check: 'M4 4h16v16H4z M8 12l3 3 5-6', message: 'M3 4h18v14H8l-5 3V4 M7 8h10 M7 12h7', users: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M17 4a4 4 0 0 1 0 8 M22 21v-2a4 4 0 0 0-3-4', chart: 'M4 3v18h18 M8 17v-5 M13 17V7 M18 17v-8', settings: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z', refresh: 'M20 11a8 8 0 1 0-2.3 5.7 M20 4v7h-7', link: 'M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4l-1.1 1.1 M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1.1-1.1' };
 
 /* ---------- Utilidades ---------- */
 const icon = n => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${PATHS[n] || PATHS.building}"/></svg>`;
@@ -453,7 +472,7 @@ async function api(acao, dados = {}, idOp = '') {
   }
   return json.resultado;
 }
-const IDS = { DEPARA_SEGMENTOS: 'ID_DEPARA', ESCOLAS: 'ID_ESCOLA', CONTATOS: 'ID_CONTATO', OPORTUNIDADES: 'ID_OPORTUNIDADE', ATIVIDADES: 'ID_ATIVIDADE', TAREFAS: 'ID_TAREFA', REUNIOES: 'ID_REUNIAO', CONTRATACOES: 'ID_CONTRATACAO', CONTRATOS: 'ID_CONTRATO', ANOS_LETIVOS: 'ID_ANO_LETIVO', RENOVACOES: 'ID_RENOVACAO', KITS_CONTRATADOS: 'ID_ITEM', PEDAGOGICO: 'ID_PEDAGOGICO', DEMANDAS: 'ID_DEMANDA', MENSAGENS: 'ID_MENSAGEM', DOCUMENTOS: 'ID_DOCUMENTO', USUARIOS: 'ID_USUARIO', HABILITACOES: 'ID_HABILITACAO', HISTORICO: 'ID_HISTORICO', CHECKLIST: 'ID_ITEM_CHECK', CHECKLIST_ETAPAS: 'ID_ETAPA', DISPONIBILIDADE: 'ID_DISPONIBILIDADE', MODELOS_EMAIL: 'ID_MODELO', EMAILS: 'ID_EMAIL' };
+const IDS = { DEPARA_SEGMENTOS: 'ID_DEPARA', ESCOLAS: 'ID_ESCOLA', CONTATOS: 'ID_CONTATO', OPORTUNIDADES: 'ID_OPORTUNIDADE', ATIVIDADES: 'ID_ATIVIDADE', TAREFAS: 'ID_TAREFA', REUNIOES: 'ID_REUNIAO', CONTRATACOES: 'ID_CONTRATACAO', CONTRATOS: 'ID_CONTRATO', ANOS_LETIVOS: 'ID_ANO_LETIVO', RENOVACOES: 'ID_RENOVACAO', KITS_CONTRATADOS: 'ID_ITEM', PEDAGOGICO: 'ID_PEDAGOGICO', DEMANDAS: 'ID_DEMANDA', MENSAGENS: 'ID_MENSAGEM', DOCUMENTOS: 'ID_DOCUMENTO', USUARIOS: 'ID_USUARIO', HABILITACOES: 'ID_HABILITACAO', HISTORICO: 'ID_HISTORICO', CHECKLIST: 'ID_ITEM_CHECK', CHECKLIST_ETAPAS: 'ID_ETAPA', DISPONIBILIDADE: 'ID_DISPONIBILIDADE', MODELOS_EMAIL: 'ID_MODELO', EMAILS: 'ID_EMAIL', LINKS: 'ID_LINK' };
 /** Lixeira (v1.15): escolas excluídas e tudo ligado a elas saem das tabelas da tela e ficam em D.excluidas. */
 function separarExcluidas() {
   if (!D || !D.tabelas) return;
@@ -818,7 +837,7 @@ function render() {
   $('date-label').textContent = new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' });
   const kanbansAntes = [...main.querySelectorAll('.kanban, .table-wrap')].map(k => k.scrollLeft), paginaAntes = main.dataset.pagina, yAntes = window.scrollY;
   main.dataset.pagina = page;
-  main.innerHTML = ({ inicio: dashboard, prospeccao: prospeccao, clientes: clientesPage, agenda: agendaPage, tarefas: tarefasPage, equipe: equipePage, relatorios: relatoriosPage, configuracoes: configPage }[page])();
+  main.innerHTML = ({ inicio: dashboard, prospeccao: prospeccao, clientes: clientesPage, agenda: agendaPage, tarefas: tarefasPage, equipe: equipePage, relatorios: relatoriosPage, links: linksPage, configuracoes: configPage }[page])();
   if (paginaAntes === page) { main.querySelectorAll('.kanban, .table-wrap').forEach((k, n) => { if (kanbansAntes[n]) k.scrollLeft = kanbansAntes[n]; }); if (Math.abs(window.scrollY - yAntes) > 2) window.scrollTo(0, yAntes); }
 }
 
@@ -1872,6 +1891,67 @@ function blocoAprovacao(e) {
     + `<p class="visual-tip">A resposta chega aqui com ✉️ e 🔔 para você. Ao aprovar, a etapa escolhida é marcada sozinha (em seu nome, com a observação “Aprovado pelo cliente por e-mail”).</p></div></div>`;
 }
 
+/* ---------- v1.35: Central de links ---------- */
+let linkCat = '';
+const ICONE_CAT = c => /senha|acesso/i.test(c) ? '🔑' : /apresent/i.test(c) ? '🖥️' : /material|formul/i.test(c) ? '📄' : '🔗';
+const urlCurta = u => String(u || '').replace(/^https?:\/\/(www\.)?/i, '').replace(/^mailto:/i, '').replace(/\/$/, '');
+function cardLink(l, gestor) {
+  const temSenha = sim(l.POSSUI_SENHA), soGestor = l.QUEM_VE_SENHA === 'Gestores', podeVer = !soGestor || gestor;
+  const busca = norm([l.TITULO, l.URL, l.CATEGORIA, l.OBSERVACAO, l.USUARIO_ACESSO].join(' '));
+  return `<article class="link-card" data-busca="${esc(busca)}"><div class="link-topo"><span class="link-ico" aria-hidden="true">${ICONE_CAT(l.CATEGORIA || '')}</span><div class="link-tit"><h3>${esc(l.TITULO)}</h3><a class="link-url" href="${esc(l.URL)}" target="_blank" rel="noopener noreferrer" title="${esc(l.URL)}">${esc(urlCurta(l.URL))}</a></div></div>`
+    + (temSenha ? `<div class="link-acesso">${l.USUARIO_ACESSO ? `<div class="link-cred"><span>Usuário</span><code>${esc(l.USUARIO_ACESSO)}</code><button type="button" class="link-mini" data-action="link-copiar-usuario" data-ref="${esc(l.ID_LINK)}" title="Copiar usuário">Copiar</button></div>` : ''}`
+      + `<div class="link-cred"><span>Senha</span>${podeVer ? `<code data-senha="${esc(l.ID_LINK)}">••••••••</code><button type="button" class="link-mini" data-action="link-ver-senha" data-ref="${esc(l.ID_LINK)}" aria-label="Mostrar senha de ${esc(l.TITULO)}">👁 Mostrar</button><button type="button" class="link-mini" data-action="link-copiar-senha" data-ref="${esc(l.ID_LINK)}" title="Copiar senha">Copiar</button>` : '<em class="secondary-text">🔒 visível só para gestores</em>'}</div>`
+      + (soGestor && gestor ? '<small class="secondary-text">🔒 Senha visível só para gestores</small>' : '') + '</div>' : '')
+    + (l.OBSERVACAO ? `<p class="link-obs">${esc(l.OBSERVACAO)}</p>` : '')
+    + `<div class="link-acoes"><a class="button" href="${esc(l.URL)}" target="_blank" rel="noopener noreferrer">Abrir ↗</a><button type="button" class="button secondary" data-action="link-copiar" data-ref="${esc(l.ID_LINK)}">Copiar link</button>`
+    + (gestor ? `<span class="link-gestor">${btn('Editar', 'link-editar', 'text', `data-ref="${esc(l.ID_LINK)}"`)}${btn('Excluir', 'link-excluir', 'text danger-text', `data-ref="${esc(l.ID_LINK)}"`)}</span>` : '') + '</div></article>';
+}
+function linksPage() {
+  const gestor = eu().gestor, cats = L('CATEGORIA_LINK'), todos = T('LINKS').filter(l => sim(l.ATIVO) || l.ATIVO === '' || l.ATIVO === undefined).sort((a, b) => String(a.TITULO).localeCompare(String(b.TITULO), 'pt-BR'));
+  const ordem = cats.concat([...new Set(todos.map(l => l.CATEGORIA || '').filter(c => !cats.includes(c)))]);
+  if (linkCat && !ordem.includes(linkCat)) linkCat = '';
+  const vis = todos.filter(l => !linkCat || (l.CATEGORIA || '') === linkCat);
+  const grupos = ordem.map(c => [c, vis.filter(l => (l.CATEGORIA || '') === c)]).filter(([, ls]) => ls.length);
+  return heading('TUDO À MÃO', 'Central de links', 'Links úteis da comercialização: apresentações, materiais e acessos às plataformas.', gestor ? btn('+ Novo link', 'link-novo') : '')
+    + (todos.length ? `<div class="toolbar"><input type="search" id="link-busca" placeholder="Buscar por título, endereço ou observação" aria-label="Buscar link"><div class="segmented" role="group" aria-label="Categoria">${[['', 'Todas', todos.length]].concat(ordem.map(c => [c, c || 'Sem categoria', todos.filter(l => (l.CATEGORIA || '') === c).length])).filter(x => x[2]).map(([v, r, n]) => `<button type="button" class="${linkCat === v ? 'active' : ''}" data-action="link-cat" data-ref="${esc(v)}" aria-pressed="${linkCat === v}">${esc(r)} <small>${n}</small></button>`).join('')}</div></div>`
+      + grupos.map(([c, ls]) => `<section class="link-grupo"><h2>${ICONE_CAT(c)} ${esc(c || 'Sem categoria')} <small>${ls.length}</small></h2><div class="link-grade">${ls.map(l => cardLink(l, gestor)).join('')}</div></section>`).join('')
+      + `<div class="empty" id="link-nada" hidden>Nenhum link encontrado para esta busca.</div>`
+      : `<section class="panel">${vazio(gestor ? 'Nenhum link ainda. Clique em “+ Novo link” para cadastrar o primeiro (ex.: apresentação comercial, catálogo, acesso ao ELP).' : 'Nenhum link cadastrado ainda. Peça a um gestor para incluir.')}</section>`);
+}
+function formLink(l) {
+  l = l || {}; const cats = L('CATEGORIA_LINK'), temSenha = sim(l.POSSUI_SENHA);
+  showForm(l.ID_LINK ? 'Editar link' : 'Novo link', campo('Título', 'TITULO', 'text', l.TITULO, true, 'maxlength="150" placeholder="Ex.: Apresentação comercial 2027"')
+    + campo('URL do link', 'URL', 'text', l.URL, true, 'maxlength="2000" placeholder="https://…"')
+    + lista('Categoria', 'CATEGORIA', `<option value="">Sem categoria</option>${cats.concat(l.CATEGORIA && !cats.includes(l.CATEGORIA) ? [l.CATEGORIA] : []).map(c => `<option ${c === l.CATEGORIA ? 'selected' : ''}>${esc(c)}</option>`).join('')}`)
+    + marca('Possui senha', 'POSSUI_SENHA', temSenha)
+    + `<div class="link-senha-box" data-link-senha ${temSenha ? '' : 'hidden'}>`
+    + linha(campo('Usuário', 'USUARIO_ACESSO', 'text', l.USUARIO_ACESSO, false, 'maxlength="200" autocomplete="off"'),
+      `<label class="field">Senha${l.ID_LINK && temSenha ? '' : ' *'}<span class="senha-campo"><input type="password" name="SENHA" maxlength="500" autocomplete="new-password" ${l.ID_LINK && temSenha ? 'placeholder="•••••• (deixe em branco para manter)"' : ''}><button type="button" class="link-mini" data-olho aria-label="Mostrar a senha digitada">👁</button></span></label>`)
+    + lista('Quem pode ver a senha', 'QUEM_VE_SENHA', `<option value="Equipe" ${l.QUEM_VE_SENHA !== 'Gestores' ? 'selected' : ''}>Toda a equipe</option><option value="Gestores" ${l.QUEM_VE_SENHA === 'Gestores' ? 'selected' : ''}>Só gestores</option>`)
+    + `<p class="visual-tip">A senha fica guardada cifrada. Na Central ela aparece só ao clicar em 👁, e o sistema registra quem viu.</p></div>`
+    + `<label class="field">Observação <small class="secondary-text">(opcional)</small><textarea name="OBSERVACAO" rows="3" maxlength="2000">${esc(l.OBSERVACAO || '')}</textarea></label>`,
+    async v => {
+      if (v.POSSUI_SENHA && !v.SENHA && !(l.ID_LINK && temSenha)) throw new Error('Informe a senha (ou desmarque “Possui senha”).');
+      const reg = { ...v }; if (!v.POSSUI_SENHA) { delete reg.SENHA; delete reg.USUARIO_ACESSO; delete reg.QUEM_VE_SENHA; }
+      return salvar('LINKS', l.ID_LINK ? { ID_LINK: l.ID_LINK, ...reg } : reg, 'Link salvo.');
+    });
+  const f = $('active-form'), cx = f.querySelector('[name=POSSUI_SENHA]'), box = f.querySelector('[data-link-senha]');
+  cx.onchange = () => { box.hidden = !cx.checked; if (cx.checked) f.querySelector('[name=USUARIO_ACESSO]').focus(); };
+  f.querySelector('[data-olho]').onclick = () => { const i = f.querySelector('[name=SENHA]'); i.type = i.type === 'password' ? 'text' : 'password'; };
+}
+async function copiarTexto(t, msg) {
+  try { await navigator.clipboard.writeText(t); } catch (e) { const a = document.createElement('textarea'); a.value = t; a.style.position = 'fixed'; a.style.opacity = '0'; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove(); }
+  toast(msg || 'Copiado.');
+}
+const senhasAbertas = {};
+async function senhaDoLink(id) {
+  if (senhasAbertas[id]) return senhasAbertas[id];
+  const r = await api('verSenhaLink', { ID_LINK: id });
+  const s = r.resultado && r.resultado.senha !== undefined ? r.resultado.senha : (r.resultado || {}).resultado.senha;
+  senhasAbertas[id] = s; setTimeout(() => { delete senhasAbertas[id]; const c = document.querySelector(`[data-senha="${CSS.escape(id)}"]`); if (c) c.textContent = '••••••••'; const bt = document.querySelector(`[data-action=link-ver-senha][data-ref="${CSS.escape(id)}"]`); if (bt) bt.textContent = '👁 Mostrar'; }, 60000);
+  return s;
+}
+
 /* ---------- Relatórios ---------- */
 function relatoriosPage() {
   const daReg = x => naRegiao(escola(x.ID_ESCOLA));
@@ -2590,6 +2670,19 @@ addEventListener('click', async e => {
       case 'export-csv': exportarCsv(); break;
       case 'cfg-aba': cfgAba = ref; render(); break;
       case 'modelo-novo': formModelo({}); break;
+      case 'link-novo': formLink({}); break;
+      case 'link-editar': formLink(achar('LINKS', 'ID_LINK', ref)); break;
+      case 'link-cat': linkCat = ref || ''; render(); break;
+      case 'link-copiar': { const l = achar('LINKS', 'ID_LINK', ref); if (l) await copiarTexto(l.URL, 'Link copiado.'); break; }
+      case 'link-copiar-usuario': { const l = achar('LINKS', 'ID_LINK', ref); if (l) await copiarTexto(String(l.USUARIO_ACESSO || ''), 'Usuário copiado.'); break; }
+      case 'link-ver-senha': { const c = document.querySelector(`[data-senha="${CSS.escape(ref)}"]`);
+        if (b.textContent.includes('Ocultar')) { c.textContent = '••••••••'; b.textContent = '👁 Mostrar'; break; }
+        b.disabled = true; try { c.textContent = await senhaDoLink(ref); b.textContent = '🙈 Ocultar'; } finally { b.disabled = false; } break; }
+      case 'link-copiar-senha': { b.disabled = true; try { await copiarTexto(await senhaDoLink(ref), 'Senha copiada.'); } finally { b.disabled = false; } break; }
+      case 'link-excluir': { const l = achar('LINKS', 'ID_LINK', ref); if (!l) break;
+        showForm('Excluir link', `<p>Excluir <strong>${esc(l.TITULO)}</strong> da Central de links?</p><p class="visual-tip">${esc(l.URL)}${sim(l.POSSUI_SENHA) ? ' · a senha guardada também é apagada' : ''}. Não dá para desfazer.</p>`,
+          async () => { await api('excluirLink', { ID_LINK: l.ID_LINK }, novoIdOp()); D.tabelas.LINKS = T('LINKS').filter(x => x.ID_LINK !== l.ID_LINK); render(); toast('Link excluído.'); }, 'Excluir');
+        break; }
       case 'sino': abrirSino(); break;
       case 'email-lido': { const m = T('EMAILS').find(x => x.ID_EMAIL === ref && x.DIRECAO === 'Recebido' && !sim(x.LIDO)) || achar('EMAILS', 'ID_EMAIL', ref); if (!m) { toast('Não encontrei este e-mail na tela (' + (ref || 'sem código') + '). Clique em “Tudo salvo” para atualizar e tente de novo.', true); break; } b.disabled = true; b.textContent = 'Marcando…'; await marcarLidos([m]); break; }
       case 'emails-todos-lidos': await marcarLidos(meusNaoLidos()); break;
@@ -2652,6 +2745,12 @@ addEventListener('change', async e => {
 });
 addEventListener('input', e => {
   const el = e.target;
+  if (el.id === 'link-busca') { // v1.35: filtra na tela sem redesenhar (mantém o cursor)
+    const q = norm(el.value); let n = 0;
+    document.querySelectorAll('.link-card').forEach(c => { const v = !q || c.dataset.busca.includes(q); c.hidden = !v; if (v) n++; });
+    document.querySelectorAll('.link-grupo').forEach(g => { g.hidden = ![...g.querySelectorAll('.link-card')].some(c => !c.hidden); });
+    const nada = $('link-nada'); if (nada) nada.hidden = n > 0;
+  }
   if (el.id === 'page-search') { query = el.value; const pos = el.selectionStart; render(); const f = $('page-search'); if (f) { f.focus(); try { f.setSelectionRange(pos, pos); } catch {} } }
   if (el.id === 'global-search') {
     const v = el.value, q = norm(v);
