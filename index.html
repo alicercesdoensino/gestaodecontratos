@@ -338,6 +338,8 @@ td .tag-contactar{margin:0 0 6px}
 .renov-cand{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border);border-radius:9px;padding:9px 11px;cursor:pointer;font-size:12px}
 .renov-cand small{display:block;color:var(--muted);margin-top:3px}.renov-cand.bloq{opacity:.55;cursor:not-allowed}
 .renov-cand:has(input:checked){border-color:var(--teal);background:#f2faf8}
+/* v1.37: copiar histórico */
+.sec-title-linha{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.sec-title-linha .button{padding:7px 12px}
 </style>
   <script>
     /* ===== ENDEREÇO DA API (link /exec do Apps Script) ===== */
@@ -370,7 +372,7 @@ td .tag-contactar{margin:0 0 6px}
   <div class="shell">
     <header class="topbar"><button class="icon-button menu-button" id="menu-toggle" aria-label="Abrir menu">☰</button><span id="breadcrumb">Visão geral</span><div class="top-actions"><label class="global-search"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Buscar escola ou código ELP…" aria-label="Buscar escola em todo o CRM"></label><button type="button" class="sino" id="sino" data-action="sino" aria-label="E-mails novos">🔔</button><button class="sync" data-action="refresh" id="sync-status" title="Atualizar dados da planilha" style="background:none">Tudo salvo</button><span class="date-label" id="date-label"></span><span class="avatar small" id="top-avatar"></span></div></header>
     <main id="main" tabindex="-1"></main>
-    <footer>ALICERCES · CRM <span>Versão da tela 1.36 · 21/10/2026</span></footer>
+    <footer>ALICERCES · CRM <span>Versão da tela 1.37 · 23/10/2026</span></footer>
   </div>
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
   <dialog id="form-dialog" class="form-dialog" aria-labelledby="form-title"><div id="form-content"></div></dialog>
@@ -1259,7 +1261,7 @@ function corpoFicha(e, o) {
       const c = principal(id), cli = e.STATUS_GERAL === 'Cliente';
       return `<div class="detail-grid"><section class="info-box"><h3>Dados da escola</h3><dl class="info-list">${info('Código ELP', e.CODIGO_ELP ? `<strong>${esc(e.CODIGO_ELP)}</strong>` : (cli ? '<span class="danger">Não informado — clique em Editar escola</span>' : ''))}${cli ? info('Cliente desde', esc(desdeTxt(e))) : ''}${info('Razão social', esc(e.RAZAO_SOCIAL))}${info('CNPJ', esc(e.CNPJ))}${info('Endereço', esc(e.ENDERECO))}${info('Data de abertura', data(e.DATA_ABERTURA))}${info('Faixa de alunos', esc(e.FAIXA_ALUNOS))}${info('Segmentos atuais', esc(e.SEGMENTOS_ATUAIS))}${info('Contato principal', c ? `${esc(c.NOME)}<br>${esc(c.CARGO_FUNCAO || '')}<br>${esc(c.TELEFONE || '')} ${esc(c.EMAIL || '')}` : '')}</dl></section>`
         + (o ? `<section class="info-box"><h3>Oportunidade ${esc(o.ID_OPORTUNIDADE)}</h3><dl class="info-list">${info('Situação', esc(o.STATUS === 'Perdido' ? 'Não avançou' : o.STATUS))}${info('Etapa', esc(o.ETAPA))}${info('Responsável', esc(nomeUsuario(o.RESPONSAVEL_ATUAL)))}${info('Entrada', data(o.DATA_ENTRADA))}${info('Origem do lead', esc(o.ORIGEM_LEAD))}${info('Como conheceu', esc(o.COMO_CONHECEU))}${info('Sistema atual', esc(o.SISTEMA_ATUAL))}${info('Cargo do lead', esc(o.CARGO_LEAD))}${info('Desafio educacional', esc(o.DESAFIO_EDUCACIONAL))}${info('Tentativas', `${Number(o.TENTATIVAS_PRE_REUNIAO || 0)} de ${maxTent()} · próxima ${data(o.PROXIMA_TENTATIVA)}`)}${o.STATUS === 'Perdido' ? info('Motivo', esc(o.MOTIVO_PERDA) + ' · ' + data(o.DATA_ENCERRAMENTO)) : ''}</dl></section>` : `<section class="info-box"><h3>Oportunidade</h3>${vazio('Sem oportunidade registrada.')}</section>`)
-        + `</div>${o && o.OBSERVACOES ? `<div class="detail-note">${esc(o.OBSERVACOES)}</div>` : ''}<div class="inline-actions">${btn('Editar escola', 'edit-school', 'secondary')}${o ? btn('Editar oportunidade', 'edit-opp', 'secondary') : ''}${o && !encerrada(o) ? btn('Mover etapa', 'move-stage', 'secondary') + btn('Registrar tentativa', 'new-attempt', 'secondary') + btn('Não avançou', 'close-opp', 'secondary danger') : ''}${o && o.STATUS === 'Perdido' ? btn('Reabrir oportunidade', 'reopen', 'secondary') : ''}${btn('Criar tarefa', 'new-task', 'secondary', `data-id="${esc(id)}"`)}${eu().gestor ? btn('🗑 Apagar escola', 'lixeira-enviar', 'secondary danger', `data-id="${esc(id)}"`) : ''}</div>`;
+        + `</div>${o && o.OBSERVACOES ? `<div class="detail-note">${esc(o.OBSERVACOES)}</div>` : ''}<div class="inline-actions">${btn('Editar escola', 'edit-school', 'secondary')}${o ? btn('Editar oportunidade', 'edit-opp', 'secondary') : ''}${o && !encerrada(o) ? btn('Mover etapa', 'move-stage', 'secondary') + btn('Registrar tentativa', 'new-attempt', 'secondary') + btn('Não avançou', 'close-opp', 'secondary danger') : ''}${o && o.STATUS === 'Perdido' ? btn('Reabrir oportunidade', 'reopen', 'secondary') : ''}${btn('Criar tarefa', 'new-task', 'secondary', `data-id="${esc(id)}"`)}${btn('📋 Copiar informações', 'copiar-info', 'secondary', `data-id="${esc(id)}"`)}${eu().gestor ? btn('🗑 Apagar escola', 'lixeira-enviar', 'secondary danger', `data-id="${esc(id)}"`) : ''}</div>`;
     }
     case 1: {
       const todosC = contatosDe(id), ativoC = c => sim(c.ATIVO) || c.ATIVO === '', inativos = todosC.filter(c => !ativoC(c)).length;
@@ -1367,7 +1369,7 @@ function ligarFormAtv(e, o, g) {
 }
 const GRUPOS_ATV = [['', 'Tudo'], ['tentativas', 'Tentativas'], ['tratativas', 'Anotações'], ['tarefas', 'Tarefas'], ['reunioes', 'Reuniões'], ['emails', 'E-mails'], ['processos', 'Etapas dos processos']];
 /** Linha do tempo única: atividades + reuniões + tarefas (sem duplicar: reuniões e tarefas antigas entram pelo próprio registro). */
-function linhaDoTempo(e) {
+function itensLinhaDoTempo(e) {
   const id = e.ID_ESCOLA, itens = [];
   const at = T('ATIVIDADES').filter(a => a.ID_ESCOLA === id);
   const comAtv = new Set(at.filter(a => a.ID_TAREFA).map(a => a.ID_TAREFA));
@@ -1376,8 +1378,12 @@ function linhaDoTempo(e) {
   T('TAREFAS').filter(t => t.ID_ESCOLA === id && !comAtv.has(t.ID_TAREFA)).forEach(t => itens.push({ quando: t.DATA_CRIACAO || t.PRAZO, grupo: 'tarefas', html: itemTarefaSolta(t) }));
   emailsDe(id).forEach(m => itens.push({ quando: m.DATA_HORA, id: m.ID_EMAIL, grupo: 'emails', html: itemEmail(m) }));
   itens.sort((a, b) => String(b.quando).localeCompare(String(a.quando)) || String(b.id || '').localeCompare(String(a.id || ''), 'pt-BR', { numeric: true }));
+  return itens;
+}
+function linhaDoTempo(e) {
+  const itens = itensLinhaDoTempo(e);
   const lista = itens.filter(i => !filtroHist || i.grupo === filtroHist);
-  return `<h3 class="sec-title">Linha do tempo</h3><div class="segmented hist-filtro" aria-label="Filtrar linha do tempo">${GRUPOS_ATV.map(([g, l]) => `<button data-action="hist-filtro" data-ref="${g}" class="${filtroHist === g ? 'active' : ''}" aria-pressed="${filtroHist === g}">${l} <span class="secondary-text">${g ? itens.filter(i => i.grupo === g).length : itens.length}</span></button>`).join('')}</div>`
+  return `<div class="sec-title-linha"><h3 class="sec-title">Linha do tempo</h3>${itens.length ? btn('📋 Copiar histórico', 'copiar-historico', 'secondary', `type="button" data-id="${esc(e.ID_ESCOLA)}"`) : ''}</div><div class="segmented hist-filtro" aria-label="Filtrar linha do tempo">${GRUPOS_ATV.map(([g, l]) => `<button data-action="hist-filtro" data-ref="${g}" class="${filtroHist === g ? 'active' : ''}" aria-pressed="${filtroHist === g}">${l} <span class="secondary-text">${g ? itens.filter(i => i.grupo === g).length : itens.length}</span></button>`).join('')}</div>`
     + (lista.length ? `<div class="timeline">${lista.map(i => i.html).join('')}</div>` : vazio('Nenhum registro nesta seção.'));
 }
 function itemAtividade(a) {
@@ -2173,6 +2179,43 @@ function editarEscola(e) {
   showForm('Editar escola', formEscola(e), v => { v.UF = (v.UF || '').toUpperCase(); return salvar('ESCOLAS', { ID_ESCOLA: e.ID_ESCOLA, _versao: e.ULTIMA_ATUALIZACAO, ...v }, 'Escola atualizada.'); });
 }
 function editarOportunidade(o) { showForm('Editar oportunidade', formOportunidade(o, false), v => salvar('OPORTUNIDADES', { ID_OPORTUNIDADE: o.ID_OPORTUNIDADE, ...v }, 'Oportunidade atualizada.')); }
+/* ---------- v1.37: copiar informações (Visão geral) e histórico (Atividades) ---------- */
+const NI = 'Não informado';
+const dataTxt = v => v && /^\d{4}-\d{2}-\d{2}/.test(v) ? new Date(dia(v) + 'T12:00:00').toLocaleDateString('pt-BR') : (v ? String(v) : '');
+function textoInfoEscola(id) {
+  const e = escola(id), o = oportunidadeDe(id), c = principal(id);
+  const campos = [['Escola', e.NOME_ESCOLA], ['Contato principal', c && c.NOME], ['Cargo', c && c.CARGO_FUNCAO], ['Data de abertura da escola', dataTxt(e.DATA_ABERTURA)], ['Segmentos atuais', e.SEGMENTOS_ATUAIS],
+    ['Data de entrada', o && dataTxt(o.DATA_ENTRADA)], ['Como conheceu a editora', o && (o.COMO_CONHECEU || o.ORIGEM_LEAD)], ['Sistema de ensino atual', o && o.SISTEMA_ATUAL], ['Desafio educacional', o && o.DESAFIO_EDUCACIONAL],
+    ['Tentativas de contato', o ? `${Number(o.TENTATIVAS_PRE_REUNIAO || 0)} de ${maxTent()}` + (o.PROXIMA_TENTATIVA && !encerrada(o) ? ` · próxima tentativa em ${dataTxt(o.PROXIMA_TENTATIVA)}` : '') : '']];
+  return campos.map(([k, v]) => `${k}: ${String(v ?? '').trim() || NI}`).join('\n');
+}
+/** Converte um item da linha do tempo (HTML da tela) em texto: sem botões, ícones e comandos; links viram "texto (endereço)". */
+function itemParaTexto(html) {
+  const box = document.createElement('div'); box.setAttribute('aria-hidden', 'true');
+  box.style.cssText = 'position:fixed;left:-10000px;top:0;width:760px;white-space:normal'; box.innerHTML = html; document.body.appendChild(box);
+  try {
+    box.querySelectorAll('button, .button, [data-action], summary, input, select, svg').forEach(x => x.remove());
+    box.querySelectorAll('details').forEach(d => { d.open = true; });
+    box.querySelectorAll('.activity-type').forEach(x => { x.textContent = ' · ' + x.textContent.trim(); });
+    box.querySelectorAll('.pill').forEach(x => { x.textContent = '[' + x.textContent.trim() + ']'; });
+    box.querySelectorAll('ul > li').forEach(li => li.prepend('• '));
+    box.querySelectorAll('ol').forEach(ol => [...ol.children].forEach((li, i) => li.prepend((i + 1) + '. ')));
+    box.querySelectorAll('a[href]').forEach(a => { const h = a.getAttribute('href').replace(/^mailto:/i, ''), t = a.textContent.trim(); a.replaceWith(document.createTextNode(!t || t === h ? h : `${t} (${h})`)); });
+    return box.innerText.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\uFE0F\u200D]/gu, '').split('\n').map(l => l.replace(/[ \t]+/g, ' ').trim()).filter(Boolean).join('\n').replace(/ ·\s*$/gm, '');
+  } finally { box.remove(); }
+}
+function textoHistorico(id) {
+  const e = escola(id), itens = itensLinhaDoTempo(e);
+  return [`Histórico — ${e.NOME_ESCOLA} (copiado em ${new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })})`].concat(itens.map(i => itemParaTexto(i.html))).filter(Boolean).join('\n\n');
+}
+async function copiarParaAreaDeTransferencia(texto) {
+  let ok = false;
+  try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(texto); ok = true; } } catch (e) {}
+  if (!ok) { const a = document.createElement('textarea'); a.value = texto; a.setAttribute('readonly', ''); a.style.cssText = 'position:fixed;left:-10000px;top:0'; (formDialog.open ? formDialog : detail.open ? detail : document.body).appendChild(a); a.select(); try { ok = document.execCommand('copy'); } catch (e) { ok = false; } a.remove(); }
+  if (ok) toast('Informações copiadas!'); else toast('Não foi possível copiar. Tente de novo ou use Ctrl+C depois de selecionar o texto.', true);
+  return ok;
+}
+
 /* ---------- v1.36: atualizar contatos pela planilha "Contratos e Renovações" ---------- */
 let verInativos = false;
 const anoLetivoSugerido = () => { const d = new Date(), m = Number(cfg('MES_VIRADA_ANO_LETIVO', 5)) || 5; return d.getMonth() + 1 >= m ? d.getFullYear() + 1 : d.getFullYear(); };
@@ -2702,6 +2745,8 @@ addEventListener('click', async e => {
       case 'reopen': if (confirmar(b, 'Clique de novo para reabrir')) await gravar('reabrirOportunidade', { ID_OPORTUNIDADE: o.ID_OPORTUNIDADE }, 'Oportunidade reaberta.'); break;
       case 'new-contact': formContato({}, esc_.ID_ESCOLA); break;
       case 'contatos-renov': formContatosRenov(esc_.ID_ESCOLA); break;
+      case 'copiar-info': await copiarParaAreaDeTransferencia(textoInfoEscola(b.dataset.id)); break;
+      case 'copiar-historico': await copiarParaAreaDeTransferencia(textoHistorico(b.dataset.id)); break;
       case 'renov-outra': formContatosRenov(b.dataset.id, b.dataset.ano, null, true); break;
       case 'contatos-inativos': verInativos = !verInativos; renderDetail(true); break;
       case 'edit-contact': formContato(achar('CONTATOS', 'ID_CONTATO', ref)); break;
